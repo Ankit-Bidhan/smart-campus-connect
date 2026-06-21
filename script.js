@@ -135,7 +135,14 @@ const STATIC_EMAIL_MAP = {
     '123456789': 'divya.teacher@campusconnect.local',
 };
 
-function login() {
+async function waitForStudents(maxWaitMs = 4000) {
+    const start = Date.now();
+    while ((!window.STUDENTS || window.STUDENTS.length === 0) && (Date.now() - start) < maxWaitMs) {
+        await new Promise(r => setTimeout(r, 150));
+    }
+}
+
+async function login() {
     const rollInput = document.getElementById('login-rollno.').value.trim();
     const passInput = document.getElementById('login-pass').value.trim();
     const errorDiv = document.getElementById('login-error');
@@ -154,6 +161,9 @@ function login() {
     if (STATIC_EMAIL_MAP[rollInput]) {
         emailToUse = STATIC_EMAIL_MAP[rollInput];
     } else {
+        if (!window.STUDENTS || window.STUDENTS.length === 0) {
+            await waitForStudents();
+        }
         const dbStudent = window.STUDENTS.find(student => String(student.roll) === rollInput);
         if (dbStudent && dbStudent.email) {
             emailToUse = dbStudent.email;
