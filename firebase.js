@@ -76,6 +76,7 @@ async function loadStudents() {
 }
 
 window.loadStudents = loadStudents;
+loadStudents();
 
 async function loadComplaints() {
     try {
@@ -174,7 +175,6 @@ onAuthStateChanged(authInstance, (user) => {
         if (!dataLoadedOnce) {
             dataLoadedOnce = true;
             Promise.all([
-                loadStudents(),
                 loadComplaints(),
                 loadNotifications(),
                 loadAttendance(),
