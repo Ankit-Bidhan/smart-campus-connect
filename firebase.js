@@ -55,8 +55,6 @@ window.reauthenticateWithCredential = reauthenticateWithCredential;
 window.EmailAuthProvider = EmailAuthProvider;
 window.updatePassword = updatePassword;
 
-console.log("✅ Firebase connected successfully!", app.name);
-
 //load students from firestore
 async function loadStudents() {
     try {
@@ -78,7 +76,6 @@ async function loadStudents() {
 }
 
 window.loadStudents = loadStudents;
-loadStudents();
 
 async function loadComplaints() {
     try {
@@ -100,7 +97,6 @@ async function loadComplaints() {
 }
 
 window.loadComplaints = loadComplaints;
-loadComplaints();
 
 async function loadNotifications() {
     try {
@@ -122,7 +118,6 @@ async function loadNotifications() {
 }
 
 window.loadNotifications = loadNotifications;
-loadNotifications();
 
 // load attendance from firestore
 async function loadAttendance() {
@@ -145,7 +140,6 @@ async function loadAttendance() {
 }
 
 window.loadAttendance = loadAttendance;
-loadAttendance();
 
 // load cancelled classes from firestore
 async function loadCancelledClasses() {
@@ -168,7 +162,33 @@ async function loadCancelledClasses() {
 }
 
 window.loadCancelledClasses = loadCancelledClasses;
-loadCancelledClasses();
 
 // Signal that firebase.js has finished setting up window.firebaseAuth etc.
 window.dispatchEvent(new Event('firebase-ready'));
+
+// ── Load all Firestore-backed data, but ONLY after a user is authenticated ──
+let dataLoadedOnce = false;
+
+onAuthStateChanged(authInstance, (user) => {
+    if (user) {
+        if (!dataLoadedOnce) {
+            dataLoadedOnce = true;
+            Promise.all([
+                loadStudents(),
+                loadComplaints(),
+                loadNotifications(),
+                loadAttendance(),
+                loadCancelledClasses()
+            ]).then(() => {
+                window.dispatchEvent(new Event('firebase-data-ready'));
+                if (typeof currentUser !== "undefined" && currentUser && typeof navigate === "function" && document.getElementById("main-content")) {
+                    navigate(currentPage || 'dashboard');
+                }
+            });
+        }
+    } else {
+        dataLoadedOnce = false;
+    }
+});
+
+console.log("✅ Firebase connected successfully!", app.name);
