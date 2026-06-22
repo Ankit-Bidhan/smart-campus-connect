@@ -187,6 +187,32 @@ async function loadPYQs() {
 }
 window.loadPYQs = loadPYQs;
 
+async function loadAnnouncements() {
+    try {
+        const querySnapshot = await getDocs(collection(db, "Announcements"));
+
+        window.ANNOUNCEMENTS = querySnapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+        }));
+
+        window.ANNOUNCEMENTS.sort((a, b) => {
+            if (b.pinned !== a.pinned) return (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0);
+            return (b.createdAt || '').localeCompare(a.createdAt || '');
+        });
+
+        console.log("📢 Announcements loaded:", window.ANNOUNCEMENTS);
+
+        if (typeof navigate === "function" && typeof currentUser !== "undefined" && currentUser && document.getElementById("main-content")) {
+            navigate(currentPage);
+        }
+    } catch (error) {
+        console.error("Error loading announcements: ", error);
+    }
+}
+
+window.loadAnnouncements = loadAnnouncements;
+
 // Signal that firebase.js has finished setting up window.firebaseAuth etc.
 window.dispatchEvent(new Event('firebase-ready'));
 
@@ -202,7 +228,8 @@ onAuthStateChanged(authInstance, (user) => {
                 loadNotifications(),
                 loadAttendance(),
                 loadCancelledClasses(),
-                loadPYQs()
+                loadPYQs(),
+                loadAnnouncements()
             ]).then(() => {
                 window.dispatchEvent(new Event('firebase-data-ready'));
                 if (typeof currentUser !== "undefined" && currentUser && typeof navigate === "function" && document.getElementById("main-content")) {
