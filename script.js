@@ -982,14 +982,10 @@ async function updateComplaint(id, status) {
 
 // ── PAGE: ANNOUNCEMENTS ───────────────────────────────────────────────────────
 
-const announcements = [
-    { id: 1, title: 'Mid-Semester Exam Schedule Released', body: 'Mid-semester exams will be held from 1st July to 8th July 2026. Individual timetables have been sent to your email. All students must carry their ID cards.', by: 'Dr. Anand Verma', role: 'Admin', date: '14 Jun 2026', pinned: true },
-    { id: 2, title: 'Library Hours Extended', body: 'The central library will now remain open until 10 PM on weekdays for the exam preparation period. This is valid from 20 June to 10 July 2026.', by: 'Admin Office', role: 'Admin', date: '13 Jun 2026', pinned: false },
-    { id: 3, title: 'Data Structures Assignment 3 Released', body: 'Assignment 3 covering Graph Algorithms has been uploaded to the portal. Submission deadline is 25th June 2026. Late submissions will not be accepted.', by: 'Riya Sharma', role: 'Teacher', date: '12 Jun 2026', pinned: false },
-];
-
 function renderAnnounce() {
     const canPost = currentUser.role !== 'student';
+    const list = window.ANNOUNCEMENTS || [];
+
     return `<div class="page active">
     <div class="page-title">Announcements</div>
     <div class="page-sub">Important notices from teachers and administration</div>
@@ -998,15 +994,29 @@ function renderAnnounce() {
       <h3>Post New Announcement</h3>
       <div class="form-row single"><div class="form-group"><label>Title</label><input type="text" id="ann-title" placeholder="Announcement heading" /></div></div>
       <div class="form-row single"><div class="form-group"><label>Message</label><textarea id="ann-body" placeholder="Write your announcement..."></textarea></div></div>
-      <button class="btn btn-blue" onclick="postAnnouncement()">📢 Post Announcement</button>
+      <div class="form-group" style="margin-top:8px">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+          <input type="checkbox" id="ann-pinned" style="width:16px;height:16px" />
+          <span>📌 Pin this announcement</span>
+        </label>
+      </div>
+      <button class="btn btn-blue" style="margin-top:12px" onclick="postAnnouncement()">📢 Post Announcement</button>
     </div>` : ''}
     <div class="section-card">
       <h3>All Announcements</h3>
-      ${announcements.map(a => `
+      ${list.length === 0
+        ? '<div class="empty-state"><div class="icon">📢</div><p>No announcements yet</p></div>'
+        : list
+            .slice()
+            .sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0))
+            .map(a => `
         <div style="border:1px solid var(--border);border-radius:var(--radius-sm);padding:16px;margin-bottom:12px;${a.pinned ? 'border-left:4px solid var(--primary)' : ''}">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
             <div style="font-size:15px;font-weight:600">${a.pinned ? '📌 ' : ''}${a.title}</div>
-            <span class="badge ${a.role === 'Admin' ? 'admin' : 'teacher'}">${a.role}</span>
+            <div style="display:flex;align-items:center;gap:8px">
+              <span class="badge ${a.role === 'Admin' ? 'admin' : 'teacher'}">${a.role}</span>
+              ${canPost ? `<button class="btn btn-sm btn-outline" style="color:var(--red);border-color:var(--red)" onclick="deleteAnnouncement('${a.id}')">🗑️</button>` : ''}
+            </div>
           </div>
           <div style="font-size:13px;color:var(--text2);margin-bottom:10px;line-height:1.6">${a.body}</div>
           <div style="font-size:12px;color:var(--text3)">By ${a.by} · ${a.date}</div>
@@ -1015,19 +1025,53 @@ function renderAnnounce() {
   </div>`;
 }
 
-function postAnnouncement() {
+async function postAnnouncement() {
     const title = document.getElementById('ann-title').value.trim();
     const body = document.getElementById('ann-body').value.trim();
+    const pinned = document.getElementById('ann-pinned')?.checked || false;
+
     if (!title || !body) { showToast('Fill in title and message', true); return; }
-    announcements.unshift({ id: Date.now(), title, body, by: currentUser.name, role: currentUser.role === 'admin' ? 'Admin' : 'Teacher', date: '15 Jun 2026', pinned: false });
-    showToast('Announcement posted ✓');
-    navigate('announce');
+
+    const newAnn = {
+        title,
+        body,
+        by: currentUser.name,
+        role: currentUser.role === 'admin' ? 'Admin' : 'Teacher',
+        date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
+        pinned,
+        createdAt: new Date().toISOString()
+    };
+
+    try {
+        const docRef = await window.addDoc(window.collection(window.db, "Announcements"), newAnn);
+        window.ANNOUNCEMENTS = window.ANNOUNCEMENTS || [];
+        window.ANNOUNCEMENTS.unshift({ id: docRef.id, ...newAnn });
+        showToast('Announcement posted successfully ✓');
+        navigate('announce');
+    } catch (error) {
+        console.error("Error posting announcement:", error);
+        showToast('Failed to post announcement. Try again.', true);
+    }
+}
+
+async function deleteAnnouncement(id) {
+    if (!confirm('Yeh announcement delete karna chahte ho?')) return;
+    try {
+        await window.deleteDoc(window.doc(window.db, "Announcements", id));
+        window.ANNOUNCEMENTS = window.ANNOUNCEMENTS.filter(a => a.id !== id);
+        showToast('Announcement deleted ✓');
+        navigate('announce');
+    } catch (e) {
+        console.error(e);
+        showToast('Delete failed. Try again.', true);
+    }
 }
 
 // ── PAGE: PROFILE ─────────────────────────────────────────────────────────────
 
 function renderProfile() {
-    const s = STUDENTS.find(stu => String(stu.roll) === String(currentUser.roll)) || STUDENTS[0];
+    const rollNo = currentUser.email; // yahan roll number store hota hai
+const s = STUDENTS.find(stu => String(stu.roll) === String(rollNo));
     const avg = getOverallAttendance(currentUser.roll);
 
     return `<div class="page active">
