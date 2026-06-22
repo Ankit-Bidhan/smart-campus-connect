@@ -82,7 +82,6 @@ const NAV = {
         { id: 'timetable', label: 'Timetable', icon: 'calendar' },
         { id: 'cancel', label: 'Cancel Classes', icon: 'x-circle' },
         { id: 'complaints', label: 'Complaints', icon: 'message' },
-        { id: 'announce', label: 'Announcements', icon: 'megaphone' },
         { id: 'pyq', label: 'PYQ Papers', icon: 'book' },
     ],
     teacher: [
@@ -96,7 +95,6 @@ const NAV = {
         { section: 'Students' },
         { id: 'students', label: 'My Students', icon: 'users' },
         { id: 'complaints', label: 'Complaints', icon: 'message' },
-        { id: 'announce', label: 'Announcements', icon: 'megaphone' },
         { id: 'pyq', label: 'PYQ Papers', icon: 'book' },
     ],
     student: [
@@ -277,7 +275,6 @@ function navigate(page) {
         timetable: renderTimetable,
         cancel: renderCancel,
         complaints: renderComplaints,
-        announce: renderAnnounce,
         profile: renderProfile,
         addstudent: renderAddStudent,
         pyq: renderPYQ,
@@ -977,93 +974,6 @@ async function updateComplaint(id, status) {
     } catch (error) {
         console.error("Error updating complaint: ", error);
         showToast('Failed to update complaint. Try again.', true);
-    }
-}
-
-// ── PAGE: ANNOUNCEMENTS ───────────────────────────────────────────────────────
-
-function renderAnnounce() {
-    const canPost = currentUser.role !== 'student';
-    const list = window.ANNOUNCEMENTS || [];
-
-    return `<div class="page active">
-    <div class="page-title">Announcements</div>
-    <div class="page-sub">Important notices from teachers and administration</div>
-    ${canPost ? `
-    <div class="section-card">
-      <h3>Post New Announcement</h3>
-      <div class="form-row single"><div class="form-group"><label>Title</label><input type="text" id="ann-title" placeholder="Announcement heading" /></div></div>
-      <div class="form-row single"><div class="form-group"><label>Message</label><textarea id="ann-body" placeholder="Write your announcement..."></textarea></div></div>
-      <div class="form-group" style="margin-top:8px">
-        <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
-          <input type="checkbox" id="ann-pinned" style="width:16px;height:16px" />
-          <span>📌 Pin this announcement</span>
-        </label>
-      </div>
-      <button class="btn btn-blue" style="margin-top:12px" onclick="postAnnouncement()">📢 Post Announcement</button>
-    </div>` : ''}
-    <div class="section-card">
-      <h3>All Announcements</h3>
-      ${list.length === 0
-        ? '<div class="empty-state"><div class="icon">📢</div><p>No announcements yet</p></div>'
-        : list
-            .slice()
-            .sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0))
-            .map(a => `
-        <div style="border:1px solid var(--border);border-radius:var(--radius-sm);padding:16px;margin-bottom:12px;${a.pinned ? 'border-left:4px solid var(--primary)' : ''}">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
-            <div style="font-size:15px;font-weight:600">${a.pinned ? '📌 ' : ''}${a.title}</div>
-            <div style="display:flex;align-items:center;gap:8px">
-              <span class="badge ${a.role === 'Admin' ? 'admin' : 'teacher'}">${a.role}</span>
-              ${canPost ? `<button class="btn btn-sm btn-outline" style="color:var(--red);border-color:var(--red)" onclick="deleteAnnouncement('${a.id}')">🗑️</button>` : ''}
-            </div>
-          </div>
-          <div style="font-size:13px;color:var(--text2);margin-bottom:10px;line-height:1.6">${a.body}</div>
-          <div style="font-size:12px;color:var(--text3)">By ${a.by} · ${a.date}</div>
-        </div>`).join('')}
-    </div>
-  </div>`;
-}
-
-async function postAnnouncement() {
-    const title = document.getElementById('ann-title').value.trim();
-    const body = document.getElementById('ann-body').value.trim();
-    const pinned = document.getElementById('ann-pinned')?.checked || false;
-
-    if (!title || !body) { showToast('Fill in title and message', true); return; }
-
-    const newAnn = {
-        title,
-        body,
-        by: currentUser.name,
-        role: currentUser.role === 'admin' ? 'Admin' : 'Teacher',
-        date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
-        pinned,
-        createdAt: new Date().toISOString()
-    };
-
-    try {
-        const docRef = await window.addDoc(window.collection(window.db, "Announcements"), newAnn);
-        window.ANNOUNCEMENTS = window.ANNOUNCEMENTS || [];
-        window.ANNOUNCEMENTS.unshift({ id: docRef.id, ...newAnn });
-        showToast('Announcement posted successfully ✓');
-        navigate('announce');
-    } catch (error) {
-        console.error("Error posting announcement:", error);
-        showToast('Failed to post announcement. Try again.', true);
-    }
-}
-
-async function deleteAnnouncement(id) {
-    if (!confirm('Yeh announcement delete karna chahte ho?')) return;
-    try {
-        await window.deleteDoc(window.doc(window.db, "Announcements", id));
-        window.ANNOUNCEMENTS = window.ANNOUNCEMENTS.filter(a => a.id !== id);
-        showToast('Announcement deleted ✓');
-        navigate('announce');
-    } catch (e) {
-        console.error(e);
-        showToast('Delete failed. Try again.', true);
     }
 }
 
