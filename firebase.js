@@ -5,6 +5,11 @@ import {
     getFirestore,
     collection,
     getDocs,
+    getStorage,
+    ref,
+    uploadBytesResumable,
+    getDownloadURL,
+    deleteObject,
     addDoc,
     doc,
     updateDoc,
@@ -34,6 +39,8 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+const storage = getStorage(app);
+window.storage = storage;
 const authInstance = getAuth(app);
 
 window.db = db;
@@ -45,6 +52,7 @@ window.deleteDoc = deleteDoc;
 window.query = query;
 window.where = where;
 window.setDoc = setDoc;
+
 
 // Auth exports for script.js to use
 window.firebaseAuth = authInstance;
@@ -164,6 +172,20 @@ async function loadCancelledClasses() {
 
 window.loadCancelledClasses = loadCancelledClasses;
 
+async function loadPYQs() {
+    try {
+        const querySnapshot = await getDocs(collection(db, "PYQs"));
+        window.PYQS = querySnapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+        }));
+        console.log("📄 PYQs loaded:", window.PYQS);
+    } catch (error) {
+        console.error("Error loading PYQs: ", error);
+    }
+}
+window.loadPYQs = loadPYQs;
+
 // Signal that firebase.js has finished setting up window.firebaseAuth etc.
 window.dispatchEvent(new Event('firebase-ready'));
 
@@ -178,7 +200,8 @@ onAuthStateChanged(authInstance, (user) => {
                 loadComplaints(),
                 loadNotifications(),
                 loadAttendance(),
-                loadCancelledClasses()
+                loadCancelledClasses(),
+                loadPYQs()
             ]).then(() => {
                 window.dispatchEvent(new Event('firebase-data-ready'));
                 if (typeof currentUser !== "undefined" && currentUser && typeof navigate === "function" && document.getElementById("main-content")) {
