@@ -83,6 +83,7 @@ const NAV = {
         { id: 'cancel', label: 'Cancel Classes', icon: 'x-circle' },
         { id: 'complaints', label: 'Complaints', icon: 'message' },
         { id: 'announce', label: 'Announcements', icon: 'megaphone' },
+        { id: 'pyq', label: 'PYQ Papers', icon: 'book' },
     ],
     teacher: [
         { section: 'Overview' },
@@ -96,6 +97,7 @@ const NAV = {
         { id: 'students', label: 'My Students', icon: 'users' },
         { id: 'complaints', label: 'Complaints', icon: 'message' },
         { id: 'announce', label: 'Announcements', icon: 'megaphone' },
+        { id: 'pyq', label: 'PYQ Papers', icon: 'book' },
     ],
     student: [
         { section: 'Overview' },
@@ -107,6 +109,7 @@ const NAV = {
         { section: 'Support' },
         { id: 'complaints', label: 'My Complaints', icon: 'message' },
         { id: 'profile', label: 'My Profile', icon: 'user' },
+        { id: 'pyq', label: 'PYQ Papers', icon: 'book' },
         { id: 'students', label: 'Students', icon: 'users' },
         // { id:'addstudent', label:'Add Student', icon:'users' },
     ],
@@ -123,6 +126,7 @@ function icon(name) {
         message: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>',
         megaphone: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l19-9-9 19-2-8-8-2z"/></svg>',
         user: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>',
+        book: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>',
     };
     return icons[name] || '';
 }
@@ -260,7 +264,8 @@ function navigate(page) {
         dashboard: 'Dashboard', notifications: 'Notifications', students: 'Students',
         attendance: currentUser?.role === 'student' ? 'My Attendance' : 'Attendance',
         timetable: 'Timetable', cancel: 'Cancel Classes', complaints: 'Complaints',
-        announce: 'Announcements', profile: 'My Profile'
+        announce: 'Announcements', profile: 'My Profile',
+        pyq: 'PYQ Papers',
     };
     document.getElementById('topbar-page').textContent = titles[page] || '';
     const content = document.getElementById('main-content');
@@ -275,6 +280,7 @@ function navigate(page) {
         announce: renderAnnounce,
         profile: renderProfile,
         addstudent: renderAddStudent,
+        pyq: renderPYQ,
     };
     content.innerHTML = (renders[page] || (() => '<div class="page active"><p>Coming soon</p></div>'))();
 }
@@ -1047,6 +1053,215 @@ function renderProfile() {
       </table>
     </div>
   </div>`;
+}
+
+// ── PAGE: PYQ ─────────────────────────────────────────────────────────────────
+
+window.PYQS = window.PYQS || [];
+
+function renderPYQ() {
+    const isAdmin = currentUser.role === 'admin' || currentUser.role === 'teacher';
+
+    return `<div class="page active">
+    <div class="page-title">PYQ Papers 📄</div>
+    <div class="page-sub">Previous Year Question Papers — Filter by Semester & Year</div>
+
+    ${isAdmin ? `
+    <div class="section-card">
+      <h3>Upload New PYQ</h3>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Subject Name</label>
+          <input type="text" id="pyq-subject" placeholder="e.g. Data Structures" />
+        </div>
+        <div class="form-group">
+          <label>Semester</label>
+          <select id="pyq-sem">
+            ${[1,2,3,4,5,6,7,8].map(s => `<option value="${s}" ${s==3?'selected':''}>Sem ${s}</option>`).join('')}
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Exam Year</label>
+          <select id="pyq-year">
+            ${[2025,2024,2023,2022,2021,2020].map(y => `<option value="${y}">${y}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+      <div class="form-group" style="margin-top:10px">
+        <label>PDF File</label>
+        <input type="file" id="pyq-file" accept=".pdf"
+          style="padding:8px;border:1.5px dashed var(--border);border-radius:8px;width:100%;cursor:pointer;background:var(--bg2)" />
+      </div>
+      <div id="pyq-upload-progress" style="display:none;margin-top:10px">
+        <div style="font-size:13px;color:var(--text2);margin-bottom:4px">
+          Uploading... <span id="pyq-pct">0</span>%
+        </div>
+        <div class="progress-bar" style="height:8px">
+          <div class="progress-fill" id="pyq-progress-fill" style="width:0%;background:var(--blue)"></div>
+        </div>
+      </div>
+      <button class="btn btn-blue" style="margin-top:14px" onclick="uploadPYQ()">
+        📤 Upload PYQ
+      </button>
+      <div id="pyq-msg" style="margin-top:10px;font-size:13px"></div>
+    </div>` : ''}
+
+    <div class="section-card">
+      <h3>Browse PYQs</h3>
+      <div class="form-row" style="margin-bottom:16px">
+        <div class="form-group">
+          <label>Filter by Semester</label>
+          <select id="pyq-filter-sem" onchange="filterPYQs()">
+            <option value="">All Semesters</option>
+            ${[1,2,3,4,5,6,7,8].map(s =>
+              `<option value="${s}" ${s==3?'selected':''}>Sem ${s}</option>`
+            ).join('')}
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Filter by Year</label>
+          <select id="pyq-filter-year" onchange="filterPYQs()">
+            <option value="">All Years</option>
+            ${[2025,2024,2023,2022,2021,2020].map(y =>
+              `<option value="${y}">${y}</option>`
+            ).join('')}
+          </select>
+        </div>
+      </div>
+      <div id="pyq-list">${buildPYQList('3','')}</div>
+    </div>
+  </div>`;
+}
+
+function buildPYQList(semFilter='3', yearFilter='') {
+    const list = (window.PYQS || []).filter(p => {
+        const semMatch  = !semFilter  || String(p.sem)  === String(semFilter);
+        const yearMatch = !yearFilter || String(p.year) === String(yearFilter);
+        return semMatch && yearMatch;
+    });
+
+    if (list.length === 0) {
+        return `<div class="empty-state">
+          <div class="icon">📂</div>
+          <p>No PYQs found for selected filters</p>
+        </div>`;
+    }
+
+    return list.map(p => `
+    <div style="display:flex;align-items:center;justify-content:space-between;
+                padding:14px 0;border-bottom:1px solid var(--border)">
+      <div style="display:flex;align-items:center;gap:12px">
+        <div style="width:42px;height:42px;background:#fee2e2;border-radius:10px;
+                    display:flex;align-items:center;justify-content:center;font-size:20px">📄</div>
+        <div>
+          <div style="font-size:14px;font-weight:600">${p.subject}</div>
+          <div style="font-size:12px;color:var(--text3);margin-top:2px">
+            Sem ${p.sem} · Year ${p.year} · By ${p.uploadedBy}
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        ${currentUser.role === 'admin' ? `
+          <button class="btn btn-sm btn-outline" style="color:var(--red)"
+            onclick="deletePYQ('${p.id}','${p.publicId}')">🗑️</button>` : ''}
+        <a href="${p.url}" target="_blank">
+          <button class="btn btn-sm btn-blue">⬇️ Download</button>
+        </a>
+      </div>
+    </div>`).join('');
+}
+
+function filterPYQs() {
+    const sem  = document.getElementById('pyq-filter-sem').value;
+    const year = document.getElementById('pyq-filter-year').value;
+    document.getElementById('pyq-list').innerHTML = buildPYQList(sem, year);
+}
+
+async function uploadPYQ() {
+    const subject = document.getElementById('pyq-subject').value.trim();
+    const sem     = document.getElementById('pyq-sem').value;
+    const year    = document.getElementById('pyq-year').value;
+    const file    = document.getElementById('pyq-file').files[0];
+    const msgDiv  = document.getElementById('pyq-msg');
+
+    if (!subject) { showToast('Subject name daalo', true); return; }
+    if (!file)    { showToast('PDF file select karo', true); return; }
+    if (file.type !== 'application/pdf') { showToast('Sirf PDF allowed hai', true); return; }
+    if (file.size > 10 * 1024 * 1024)   { showToast('File 10MB se chhoti honi chahiye', true); return; }
+
+    // Cloudinary upload via fetch (no SDK needed!)
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('upload_preset', window.CLOUDINARY_UPLOAD_PRESET);
+    formData.append('folder', `pyqs/sem${sem}/${year}`);
+    formData.append('resource_type', 'raw');
+
+    document.getElementById('pyq-upload-progress').style.display = 'block';
+    msgDiv.textContent = '';
+
+    // Progress simulation (Cloudinary fetch doesn't give real progress)
+    let fakeP = 0;
+    const fakeInterval = setInterval(() => {
+        fakeP = Math.min(fakeP + 10, 90);
+        document.getElementById('pyq-pct').textContent = fakeP;
+        document.getElementById('pyq-progress-fill').style.width = fakeP + '%';
+    }, 300);
+
+    try {
+        const res = await fetch(
+            `https://api.cloudinary.com/v1_1/${window.CLOUDINARY_CLOUD_NAME}/raw/upload`,
+            { method: 'POST', body: formData }
+        );
+        const data = await res.json();
+
+        clearInterval(fakeInterval);
+
+        if (data.error) {
+            showToast('Upload failed: ' + data.error.message, true);
+            document.getElementById('pyq-upload-progress').style.display = 'none';
+            return;
+        }
+
+        document.getElementById('pyq-pct').textContent = '100';
+        document.getElementById('pyq-progress-fill').style.width = '100%';
+
+        const pyqData = {
+            subject,
+            sem      : Number(sem),
+            year     : Number(year),
+            url      : data.secure_url,
+            publicId : data.public_id,
+            uploadedBy: currentUser.name,
+            uploadedAt: new Date().toLocaleDateString('en-GB')
+        };
+
+        const docRef = await window.addDoc(
+            window.collection(window.db, "PYQs"), pyqData
+        );
+        window.PYQS.unshift({ id: docRef.id, ...pyqData });
+
+        showToast('PYQ uploaded successfully ✓');
+        setTimeout(() => navigate('pyq'), 800);
+
+    } catch (err) {
+        clearInterval(fakeInterval);
+        console.error(err);
+        showToast('Upload failed. Internet check karo.', true);
+        document.getElementById('pyq-upload-progress').style.display = 'none';
+    }
+}
+
+async function deletePYQ(id, publicId) {
+    if (!confirm('Yeh PYQ delete karna chahte ho?')) return;
+    try {
+        await window.deleteDoc(window.doc(window.db, "PYQs", id));
+        window.PYQS = window.PYQS.filter(p => p.id !== id);
+        showToast('PYQ deleted ✓');
+        navigate('pyq');
+    } catch(e) {
+        console.error(e);
+        showToast('Delete failed', true);
+    }
 }
 
 function showChangePasswordForm() {
