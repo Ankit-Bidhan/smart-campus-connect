@@ -532,7 +532,7 @@ function renderStudents() {
 </div>
     <div class="section-card">
       <table>
-        <thead><tr><th>Student</th><th>Roll No.</th><th>Attendance</th><th>Status</th>${currentUser.role === 'admin' ? '<th>Action</th>' : ''}</tr></thead>
+        <thead><tr><th>Student</th><th>Roll No.</th><th>Attendance</th><th>Status</th>${(currentUser.role === 'admin' || currentUser.role === 'teacher') ? '<th>Action</th>' : ''}</tr></thead>
         <tbody>
           ${[...STUDENTS].sort((a, b) => Number(a.roll) - Number(b.roll)).map(s => {
             const liveAttendance = getOverallAttendance(s.roll);
@@ -543,13 +543,33 @@ function renderStudents() {
               <td>${s.roll}</td>
               <td><div style="display:flex;align-items:center;gap:8px"><span style="font-weight:700;color:${color}">${liveAttendance}%</span><div style="width:80px"><div class="progress-bar"><div class="progress-fill" style="width:${liveAttendance}%;background:${color}"></div></div></div></div></td>
               <td><span class="badge ${status}">${liveAttendance >= 85 ? 'Good' : liveAttendance >= 75 ? 'Warning' : 'At Risk'}</span></td>
-              ${currentUser.role === 'admin' ? `<td><button class="btn btn-sm btn-outline">View</button></td>` : ''}
+              ${(currentUser.role === 'admin' || currentUser.role === 'teacher') ? `<td>
+  <button class="btn btn-sm btn-outline" style="color:var(--red);border-color:var(--red)" 
+    onclick="deleteStudent('${s.id}', '${s.name}')">🗑️ Delete</button>
+</td>` : ''}
             </tr>`;
           }).join('')}
         </tbody>
       </table>
     </div>
   </div>`;
+}
+async function deleteStudent(docId, name) {
+    if (!confirm(`"${name}" ko delete karna chahte ho?\n\nYaad rahe: Firebase Auth se manually bhi delete karna hoga.`)) return;
+
+    try {
+        // Firestore se student document delete
+        await window.deleteDoc(window.doc(window.db, "Students", docId));
+
+        // Local array se bhi hatao
+        window.STUDENTS = window.STUDENTS.filter(s => s.id !== docId);
+
+        showToast(`${name} deleted from records ✓`);
+        navigate('students');
+    } catch (err) {
+        console.error(err);
+        showToast('Delete failed. Try again.', true);
+    }
 }
 async function showAddStudentForm() {
 
