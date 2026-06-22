@@ -1229,7 +1229,7 @@ async function uploadPYQ() {
 
     try {
         const res = await fetch(
-            `https://api.cloudinary.com/v1_1/${window.CLOUDINARY_CLOUD_NAME}/raw/upload`,
+    `https://api.cloudinary.com/v1_1/dhdxrb98h/raw/upload`,
             { method: 'POST', body: formData }
         );
         const data = await res.json();
