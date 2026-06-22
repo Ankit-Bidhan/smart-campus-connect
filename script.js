@@ -1001,8 +1001,8 @@ function postAnnouncement() {
 // ── PAGE: PROFILE ─────────────────────────────────────────────────────────────
 
 function renderProfile() {
-    const s = STUDENTS.find(stu => String(stu.roll) === String(currentUser.email)) || STUDENTS[0];
-    const avg = getOverallAttendance(currentUser.email);
+    const s = STUDENTS.find(stu => String(stu.roll) === String(currentUser.roll)) || STUDENTS[0];
+    const avg = getOverallAttendance(currentUser.roll);
 
     return `<div class="page active">
     <div class="page-title">My Profile</div>
