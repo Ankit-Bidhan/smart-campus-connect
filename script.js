@@ -1212,7 +1212,7 @@ async function uploadPYQ() {
     // Cloudinary upload via fetch (no SDK needed!)
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('upload_preset', window.CLOUDINARY_UPLOAD_PRESET);
+    formData.append('upload_preset', 'pyq_upload');
     formData.append('folder', `pyqs/sem${sem}/${year}`);
     formData.append('resource_type', 'raw');
 
