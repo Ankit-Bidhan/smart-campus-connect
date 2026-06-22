@@ -774,6 +774,7 @@ function renderTimetable() {
     <div class="alert-banner info" style="margin-bottom:16px">
       <div class="icon">ℹ️</div>
       <div class="alert-text"><strong>${TODAY_DAY === -1 ? "It's the weekend" : 'Today is ' + DAYS[TODAY_DAY]}</strong><span>Classes highlighted in blue are today's classes. Classes marked 🚫 are cancelled.</span></div>
+      </div>
     <div class="section-card" style="padding:0;overflow:hidden">
       <div class="timetable">
         <div class="tt-header">Time</div>
