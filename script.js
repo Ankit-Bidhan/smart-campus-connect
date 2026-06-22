@@ -1213,7 +1213,6 @@ async function uploadPYQ() {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('upload_preset', 'pyq_upload');
-    formData.append('folder', `pyqs/sem${sem}/${year}`);
     formData.append('resource_type', 'raw');
 
     document.getElementById('pyq-upload-progress').style.display = 'block';
