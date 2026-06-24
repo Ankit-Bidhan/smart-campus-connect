@@ -12,9 +12,13 @@ const SUBJECTS = [
     'Probability and Statistics',
     'Essence of Indian Traditional Knowledge',
     'Organizational Behaviour',
-    'Data Structures and Algorithms Lab',
-    'Object Oriented Programming Lab',
-    'IT Workshop Lab'
+];
+
+// Lab subjects — inke liye group-wise attendance lagegi
+const LAB_SUBJECTS = [
+  'Data Structures and Algorithms Lab',
+  'Object Oriented Programming Lab',
+  'IT Workshop Lab'
 ];
 
 window.ATTENDANCE = []; // har record: {subject, date, rollNo, status, markedBy};
@@ -33,8 +37,37 @@ const TIMETABLE = {
   '3:00': ['', '', 'Data Structures and Algorithms Lab', 'IT Workshop Lab', 'Object Oriented Programming Lab'],
   '4:00': ['', '', 'Data Structures and Algorithms Lab', '', 'Object Oriented Programming Lab'],
 };
+const TIMETABLE_B = {
+  '9:00': ['', '', 'IT (GF-2)', '', ''],
+  '10:00': ['Object Oriented Programming', 'Data Structures and Algorithms', 'Data Structures and Algorithms', 'Essence of Indian Traditional Knowledge (GF-2)', 'IT (GF-2)'],
+  '11:00': ['Probability and Statistics', 'Organizational Behaviour(GF-5)', 'Computer Organization and Architecture', 'Organizational Behaviour(GF-5)', 'Probability and Statistics'],
+  '12:00': ['IT (GF-2)', 'Object Oriented Programming', 'Essence of Indian Traditional Knowledge (GF-2)', 'Data Structures and Algorithms', 'Data Structures and Algorithms'],
+  '1:00': ['LUNCH', 'LUNCH', 'LUNCH', 'LUNCH', 'LUNCH'],
+  '2:00': ['DSA Lab (G-1)', 'IT LAB (G-1)', 'OOP Lab (G-1)', 'Computer Organization and Architecture', 'Computer Organization and Architecture'],
+  '3:00': ['DSA Lab (G-1)', 'IT Lab (G-1)', 'OOP Lab (G-1)', 'Probability and Statistics', 'Organizational Behaviour(GF-5)'],
+  '4:00': ['DSA Lab (G-1)', '', 'OOP Lab (G-1)', 'Object Oriented Programming', 'Object Oriented Programming'],
+};
 
 window.cancelledClasses = {}; // Firestore se loadCancelledClasses()
+
+// ── SECTION HELPER ────────────────────────────────────────────────────────────
+function getStudentSection(roll) {
+  const r = Number(roll);
+  if (r >= 2025306001 && r <= 2025306050) return 'A';
+  if (r >= 2025306051 && r <= 2025306101) return 'B';
+  return 'A'; // default
+}
+
+//Group Helper
+function getStudentGroup(roll) {
+  const r = Number(roll);
+  if (r >= 2025306001 && r <= 2025306025) return 'A1'; // Sec A, Group 1
+  if (r >= 2025306026 && r <= 2025306050) return 'A2'; // Sec A, Group 2
+  if (r >= 2025306051 && r <= 2025306075) return 'B1'; // Sec B, Group 1
+  if (r >= 2025306076 && r <= 2025306101) return 'B2'; // Sec B, Group 2
+  return 'A1'; // default
+}
+
 let todayAttendanceDraft = {}; // sirf UI ke liye, save hone tak temp store
 
 // ── ATTENDANCE HELPERS ────────────────────────────────────────────────────────
@@ -138,10 +171,10 @@ const STATIC_EMAIL_MAP = {
 };
 
 async function waitForStudents(maxWaitMs = 4000) {
-    const start = Date.now();
-    while ((!window.STUDENTS || window.STUDENTS.length === 0) && (Date.now() - start) < maxWaitMs) {
-        await new Promise(r => setTimeout(r, 150));
-    }
+  const start = Date.now();
+  while ((!window.STUDENTS || window.STUDENTS.length === 0) && (Date.now() - start) < maxWaitMs) {
+    await new Promise(r => setTimeout(r, 150));
+  }
 }
 
 async function login() {
@@ -160,17 +193,17 @@ async function login() {
     // 1. Resolve roll number -> email
     let emailToUse = null;
 
-    if (STATIC_EMAIL_MAP[rollInput]) {
-        emailToUse = STATIC_EMAIL_MAP[rollInput];
-    } else {
-        if (!window.STUDENTS || window.STUDENTS.length === 0) {
-            await waitForStudents();
-        }
-        const dbStudent = window.STUDENTS.find(student => String(student.roll) === rollInput);
-        if (dbStudent && dbStudent.email) {
-            emailToUse = dbStudent.email;
-        }
+  if (STATIC_EMAIL_MAP[rollInput]) {
+    emailToUse = STATIC_EMAIL_MAP[rollInput];
+  } else {
+    if (!window.STUDENTS || window.STUDENTS.length === 0) {
+      await waitForStudents();
     }
+    const dbStudent = window.STUDENTS.find(student => String(student.roll) === rollInput);
+    if (dbStudent && dbStudent.email) {
+      emailToUse = dbStudent.email;
+    }
+  }
 
     if (!emailToUse) {
         errorDiv.textContent = "Invalid roll number or password. Try again.";
@@ -279,7 +312,12 @@ function navigate(page) {
         addstudent: renderAddStudent,
         pyq: renderPYQ,
     };
-    content.innerHTML = (renders[page] || (() => '<div class="page active"><p>Coming soon</p></div>'))();
+  content.innerHTML = (renders[page] || (() => '<div class="page active"><p>Coming soon</p></div>'))();
+
+  // Attendance page ke baad rows populate karo — DOM ready hone ke baad
+  if (page === 'attendance' && currentUser.role !== 'student') {
+    setTimeout(() => renderAttTable(), 0);
+  }
 }
 
 // ── PAGE: DASHBOARD ───────────────────────────────────────────────────────────
@@ -290,13 +328,19 @@ function renderDashboard() {
     const cancelled = Object.keys(cancelledClasses).length;
 
     // Cancelled class alerts for today
-    const alerts = Object.entries(cancelledClasses).map(([key]) => {
-        const [subj, day] = key.split('_');
-        return `<div class="alert-banner danger">
-      <div class="icon">🚫</div>
-      <div class="alert-text"><strong>${subj} — Class Cancelled Today (${DAYS[TODAY_DAY]})</strong>
-      <span>This class has been cancelled by your teacher. Check notifications for details.</span></div>
-    </div>`;
+  const alerts = Object.entries(cancelledClasses)
+    .filter(([key]) => {
+      const parts = key.split('_');
+      const day = parts[parts.length - 1]; // last part is day e.g. "Mon"
+      return TODAY_DAY !== -1 && day === DAYS[TODAY_DAY];
+    })
+    .map(([key]) => {
+      const [subj] = key.split('_');
+      return `<div class="alert-banner danger">
+  <div class="icon">🚫</div>
+  <div class="alert-text"><strong>${subj} — Class Cancelled Today (${DAYS[TODAY_DAY]})</strong>
+  <span>This class has been cancelled by your teacher. Check notifications for details.</span></div>
+</div>`;
     }).join('');
 
     if (r === 'student') {
@@ -315,7 +359,7 @@ function renderDashboard() {
       <div class="section-card">
         <h3>Today's Schedule — ${TODAY_DAY === -1 ? 'Weekend' : DAYS[TODAY_DAY]}</h3>
         ${SUBJECTS.filter((s, i) => [0, 1].includes(i)).map(s => {
-            const cancelled = cancelledClasses[s + '_Mon'];
+          const cancelled = TODAY_DAY !== -1 && cancelledClasses[s + '_' + DAYS[TODAY_DAY]];
             return `<div class="cancel-class-item">
             <div><div style="font-size:14px;font-weight:600">${s}</div><div style="font-size:12px;color:var(--text3)">9:00 AM — Room 201</div></div>
             ${cancelled ? '<span class="badge cancelled">Cancelled</span>' : '<span class="badge present">Scheduled</span>'}
@@ -354,7 +398,7 @@ function renderDashboard() {
       <div class="section-card">
         <h3>Today's Classes — ${TODAY_DAY === -1 ? 'Weekend' : DAYS[TODAY_DAY]}</h3>
         ${SUBJECTS.slice(0, 3).map(s => {
-            const isCancelled = cancelledClasses[s + '_Mon'];
+          const cancelled = TODAY_DAY !== -1 && cancelledClasses[s + '_' + DAYS[TODAY_DAY]];
             return `<div class="cancel-class-item">
             <div><div style="font-size:14px;font-weight:600">${s}</div><div style="font-size:12px;color:var(--text3)">Room 201 · 50 students</div></div>
             <div style="display:flex;gap:8px;align-items:center">
@@ -380,14 +424,16 @@ function renderDashboard() {
     </div>`;
     }
     // admin
-    const totalAtt = Math.round(STUDENTS.reduce((a, b) => a + b.attendance, 0) / STUDENTS.length);
+  const totalAtt = STUDENTS.length > 0
+    ? Math.round(STUDENTS.reduce((sum, s) => sum + getOverallAttendance(s.roll), 0) / STUDENTS.length)
+    : 0;
     return `
     <div class="page active">
       <div class="page-title">Admin Dashboard 🏛️</div>
       <div class="page-sub">${getTodayLabel()} — System overview</div>
       <div class="cards-grid">
         <div class="stat-card blue"><div class="label">Total Students</div><div class="value">${STUDENTS.length}</div><div class="sub">B.Tech CS Sem 3</div></div>
-        <div class="stat-card green"><div class="label">Avg Attendance</div><div class="value">${totalAtt}%</div><div class="sub">Across all students</div></div>
+        <div class="stat-card red"><div class="label">Critical Attendance</div><div class="value">${STUDENTS.filter(s => getOverallAttendance(s.roll) < 75).length}</div><div class="sub">Students below 75%</div></div>
         <div class="stat-card amber"><div class="label">Pending Complaints</div><div class="value">${COMPLAINTS.filter(c => c.status === 'pending').length}</div><div class="sub">Need resolution</div></div>
         <div class="stat-card red"><div class="label">Cancelled Classes</div><div class="value">${cancelled}</div><div class="sub">Today</div></div>
       </div>
@@ -396,13 +442,17 @@ function renderDashboard() {
         <table>
           <thead><tr><th>Student</th><th>Roll No.</th><th>Attendance</th><th>Status</th></tr></thead>
           <tbody>
-            ${STUDENTS.filter(s => s.attendance < 80).map(s => `
-              <tr>
-                <td><div style="display:flex;align-items:center;gap:8px"><div class="avatar" style="width:28px;height:28px;font-size:11px;background:${s.color}">${s.avatar}</div>${s.name}</div></td>
-                <td>${s.roll}</td>
-                <td><span style="font-weight:700;color:${s.attendance < 75 ? 'var(--red)' : 'var(--amber)'}">${s.attendance}%</span></td>
-                <td><span class="badge ${s.attendance < 75 ? 'absent' : 'pending'}">${s.attendance < 75 ? 'Critical' : 'Warning'}</span></td>
-              </tr>`).join('')}
+            ${STUDENTS
+        .map(s => ({ ...s, liveAtt: getOverallAttendance(s.roll) }))
+        .filter(s => s.liveAtt < 75)
+        .sort((a, b) => a.liveAtt - b.liveAtt)
+        .map(s => `
+    <tr>
+      <td><div style="display:flex;align-items:center;gap:8px"><div class="avatar" style="width:28px;height:28px;font-size:11px;background:${s.color}">${s.avatar}</div>${s.name}</div></td>
+      <td>${s.roll}</td>
+      <td><span style="font-weight:700;color:${s.liveAtt < 75 ? 'var(--red)' : 'var(--amber)'}">${s.liveAtt}%</span></td>
+      <td><span class="badge ${s.liveAtt < 75 ? 'absent' : 'pending'}">${s.liveAtt < 75 ? 'Critical' : 'Warning'}</span></td>
+    </tr>`).join('')}
           </tbody>
         </table>
       </div>
@@ -460,7 +510,7 @@ function renderNotifications() {
     </div>` : ''}
     <div class="section-card">
       ${NOTIFICATIONS.length === 0 ? '<div class="empty-state"><div class="icon">🔔</div><p>No notifications yet</p></div>' :
-            NOTIFICATIONS.map(n => `
+      [...NOTIFICATIONS].sort((a, b) => new Date(b.time) - new Date(a.time)).map(n => `
         <div class="notif-item">
           <div class="notif-dot read"></div>
           <div>
@@ -520,7 +570,7 @@ function renderStudents() {
     <div class="page-sub">Admin & Teacher can add students here<br>${STUDENTS.length} students enrolled · B.Tech CS Sem 3</div>
   </div>
 
-  ${currentUser.role === 'admin' || 'teacher'
+  ${currentUser.role === 'admin' || currentUser.role === 'teacher'
         ? `<button class="btn btn-blue" onclick="showAddStudentForm()">
          + Add Student
        </button>`
@@ -552,21 +602,21 @@ function renderStudents() {
   </div>`;
 }
 async function deleteStudent(docId, name) {
-    if (!confirm(`"${name}" ko delete karna chahte ho?\n\nYaad rahe: Firebase Auth se manually bhi delete karna hoga.`)) return;
+  if (!confirm(`"${name}" ko delete karna chahte ho?\n\nYaad rahe: Firebase Auth se manually bhi delete karna hoga.`)) return;
 
-    try {
-        // Firestore se student document delete
-        await window.deleteDoc(window.doc(window.db, "Students", docId));
+  try {
+    // Firestore se student document delete
+    await window.deleteDoc(window.doc(window.db, "Students", docId));
 
-        // Local array se bhi hatao
-        window.STUDENTS = window.STUDENTS.filter(s => s.id !== docId);
+    // Local array se bhi hatao
+    window.STUDENTS = window.STUDENTS.filter(s => s.id !== docId);
 
-        showToast(`${name} deleted from records ✓`);
-        navigate('students');
-    } catch (err) {
-        console.error(err);
-        showToast('Delete failed. Try again.', true);
-    }
+    showToast(`${name} deleted from records ✓`);
+    navigate('students');
+  } catch (err) {
+    console.error(err);
+    showToast('Delete failed. Try again.', true);
+  }
 }
 async function showAddStudentForm() {
 
@@ -613,14 +663,14 @@ function renderAddStudent() {
 // ── PAGE: ATTENDANCE ──────────────────────────────────────────────────────────
 
 function renderAttendance() {
-    if (currentUser.role === 'student') {
-        return `<div class="page active">
+  if (currentUser.role === 'student') {
+    return `<div class="page active">
       <div class="page-title">My Attendance</div>
       <div class="page-sub">Attendance record for this semester</div>
       ${SUBJECTS.map(s => {
-            const d = getAttendanceStats(currentUser.email, s);
-            const color = d.pct >= 85 ? 'var(--green)' : d.pct >= 75 ? 'var(--amber)' : 'var(--red)';
-            return `<div class="section-card">
+      const d = getAttendanceStats(currentUser.email, s);
+      const color = d.pct >= 85 ? 'var(--green)' : d.pct >= 75 ? 'var(--amber)' : 'var(--red)';
+      return `<div class="section-card">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
             <h3>${s}</h3>
             <span style="font-size:22px;font-weight:700;color:${color}">${d.pct}%</span>
@@ -633,16 +683,39 @@ function renderAttendance() {
           <div class="progress-bar" style="height:10px"><div class="progress-fill" style="width:${d.pct}%;background:${color}"></div></div>
           ${d.pct < 75 ? '<div style="margin-top:8px;font-size:12px;color:var(--red);font-weight:500">⚠️ Attendance below 75% — you may not be allowed to sit for exams.</div>' : ''}
         </div>`;
-        }).join('')}
+    }).join('')}
     </div>`;
-    }
+  }
 
-    // Teacher / Admin: Mark Attendance
-    const todayStr = new Date().toISOString().split('T')[0];
-    return `<div class="page active">
+  // Teacher / Admin: Mark Attendance
+  const todayStr = new Date().toISOString().split('T')[0];
+  return `<div class="page active">
     <div class="page-title">Mark Attendance</div>
-    <div class="page-sub">Select subject and date, then mark attendance</div>
+    <div class="page-sub">Select section, type, subject and date</div>
     <div class="section-card">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Section</label>
+          <select id="att-section" onchange="onSectionOrTypeChange()">
+            <option value="A">Section A (Roll 001–050)</option>
+            <option value="B">Section B (Roll 051–101)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Class / Lab</label>
+          <select id="att-type" onchange="onSectionOrTypeChange()">
+            <option value="class">Class</option>
+            <option value="lab">Lab</option>
+          </select>
+        </div>
+        <div class="form-group" id="att-group-wrap" style="display:none">
+          <label>Lab Group</label>
+          <select id="att-group" onchange="renderAttTable()">
+            <option value="1">Group 1 </option>
+            <option value="2">Group 2 </option>
+          </select>
+        </div>
+      </div>
       <div class="form-row">
         <div class="form-group">
           <label>Subject</label>
@@ -658,7 +731,7 @@ function renderAttendance() {
     </div>
     <div class="section-card" id="att-table-wrap">
       <h3>Students — <span id="att-subject-label">${SUBJECTS[0]}</span></h3>
-      <div id="att-rows">${buildAttRows()}</div>
+      <div id="att-rows"></div>
       <div style="margin-top:16px;display:flex;gap:10px">
         <button class="btn btn-green" onclick="saveAttendance()">Save Attendance</button>
         <button class="btn btn-outline" onclick="markAll('p')">Mark All Present</button>
@@ -670,18 +743,37 @@ function renderAttendance() {
 // Builds the student rows for the currently selected subject+date,
 // pre-filling already-saved statuses from Firestore (so it's editable anytime)
 function buildAttRows() {
-    const subj = document.getElementById('att-subject')?.value || SUBJECTS[0];
-    const date = document.getElementById('att-date')?.value || new Date().toISOString().split('T')[0];
+  const subj = document.getElementById('att-subject')?.value || SUBJECTS[0];
+  const date = document.getElementById('att-date')?.value || new Date().toISOString().split('T')[0];
+  const section = document.getElementById('att-section')?.value || 'A';
+  const type = document.getElementById('att-type')?.value || 'class';
+  const group = document.getElementById('att-group')?.value || '1';
 
-    todayAttendanceDraft = {};
-    STUDENTS.forEach(s => {
-        const existing = window.ATTENDANCE.find(a =>
-            String(a.rollNo) === String(s.roll) && a.subject === subj && a.date === date
-        );
-        todayAttendanceDraft[s.roll] = existing ? existing.status : 'p';
-    });
+  let filteredStudents;
 
-  return [...STUDENTS].sort((a, b) => Number(a.roll) - Number(b.roll)).map(s => `
+  if (type === 'lab') {
+    // Section + Group dono se filter karo
+    // Sec A G1: 001-025, Sec A G2: 026-050, Sec B G1: 051-075, Sec B G2: 076-101
+    const groupKey = section + group; // 'A1', 'A2', 'B1', 'B2'
+    filteredStudents = STUDENTS.filter(s => getStudentGroup(s.roll) === groupKey);
+  } else {
+    // Sirf section se filter karo — poore 50 students
+    filteredStudents = STUDENTS.filter(s => getStudentSection(s.roll) === section);
+  }
+
+  todayAttendanceDraft = {};
+  filteredStudents.forEach(s => {
+    const existing = window.ATTENDANCE.find(a =>
+      String(a.rollNo) === String(s.roll) && a.subject === subj && a.date === date
+    );
+    todayAttendanceDraft[s.roll] = existing ? existing.status : 'p';
+  });
+
+  if (filteredStudents.length === 0) {
+    return `<div class="empty-state"><div class="icon">👥</div><p>No students found for this selection</p></div>`;
+  }
+
+  return [...filteredStudents].sort((a, b) => Number(a.roll) - Number(b.roll)).map(s => `
         <div class="att-mark-row">
           <div style="display:flex;align-items:center;gap:10px">
             <div class="avatar" style="width:32px;height:32px;font-size:12px;background:${s.color}">${s.avatar}</div>
@@ -700,6 +792,27 @@ function renderAttTable() {
     document.getElementById('att-rows').innerHTML = buildAttRows();
 }
 
+function onSectionOrTypeChange() {
+  const type = document.getElementById('att-type')?.value || 'class';
+  const groupWrap = document.getElementById('att-group-wrap');
+  const subjSelect = document.getElementById('att-subject');
+
+  if (type === 'lab') {
+    // Group dropdown dikhao
+    groupWrap.style.display = 'block';
+    // Sirf lab subjects show karo
+    subjSelect.innerHTML = LAB_SUBJECTS.map(s => `<option>${s}</option>`).join('');
+  } else {
+    // Group dropdown chhupaao
+    groupWrap.style.display = 'none';
+    // Saare subjects show karo (lab subjects ke bina)
+    const classSubjects = SUBJECTS.filter(s => !LAB_SUBJECTS.includes(s));
+    subjSelect.innerHTML = classSubjects.map(s => `<option>${s}</option>`).join('');
+  }
+
+  renderAttTable();
+}
+
 function markAtt(rollNo, status, btn) {
     todayAttendanceDraft[rollNo] = status;
     const row = btn.closest('.att-btns');
@@ -708,11 +821,23 @@ function markAtt(rollNo, status, btn) {
 }
 
 function markAll(status) {
-    STUDENTS.forEach(s => todayAttendanceDraft[s.roll] = status);
-    document.querySelectorAll('.att-btn').forEach(b => {
-        b.classList.remove('selected');
-        if (b.classList.contains(status)) b.classList.add('selected');
-    });
+  const section = document.getElementById('att-section')?.value || 'A';
+  const type = document.getElementById('att-type')?.value || 'class';
+  const group = document.getElementById('att-group')?.value || '1';
+
+  let filteredStudents;
+  if (type === 'lab') {
+    const groupKey = section + group;
+    filteredStudents = STUDENTS.filter(s => getStudentGroup(s.roll) === groupKey);
+  } else {
+    filteredStudents = STUDENTS.filter(s => getStudentSection(s.roll) === section);
+  }
+
+  filteredStudents.forEach(s => todayAttendanceDraft[s.roll] = status);
+  document.querySelectorAll('.att-btn').forEach(b => {
+    b.classList.remove('selected');
+    if (b.classList.contains(status)) b.classList.add('selected');
+  });
 }
 
 // Saves attendance to Firestore: one doc per student per subject per date.
@@ -720,61 +845,82 @@ function markAll(status) {
 // date+subject UPDATES the existing record instead of creating duplicates —
 // this is what makes attendance "editable anytime".
 async function saveAttendance() {
-    const subj = document.getElementById('att-subject')?.value || SUBJECTS[0];
-    const date = document.getElementById('att-date')?.value || new Date().toISOString().split('T')[0];
+  const subj = document.getElementById('att-subject')?.value || SUBJECTS[0];
+  const date = document.getElementById('att-date')?.value || new Date().toISOString().split('T')[0];
+  const section = document.getElementById('att-section')?.value || 'A';
+  const type = document.getElementById('att-type')?.value || 'class';
+  const group = document.getElementById('att-group')?.value || '1';
 
-    try {
-        const promises = STUDENTS.map(s => {
-            const status = todayAttendanceDraft[s.roll] || 'p';
-            const safeSubj = subj.replace(/[^a-zA-Z0-9]/g, '');
-            const docId = `${safeSubj}_${date}_${s.roll}`;
-            const record = {
-                subject: subj,
-                date: date,
-                rollNo: String(s.roll),
-                status: status,
-                markedBy: currentUser.name
-            };
-            return window.setDoc(window.doc(window.db, "Attendance", docId), record)
-                .then(() => {
-                    // update local cache so % recalculates immediately without a refetch
-                    const idx = window.ATTENDANCE.findIndex(a => a.id === docId);
-                    if (idx >= 0) window.ATTENDANCE[idx] = { id: docId, ...record };
-                    else window.ATTENDANCE.push({ id: docId, ...record });
-                });
+  // Sirf wahi students save karo jo screen pe hain
+  let filteredStudents;
+  if (type === 'lab') {
+    const groupKey = section + group;
+    filteredStudents = STUDENTS.filter(s => getStudentGroup(s.roll) === groupKey);
+  } else {
+    filteredStudents = STUDENTS.filter(s => getStudentSection(s.roll) === section);
+  }
+
+  try {
+    const promises = filteredStudents.map(s => {
+      const status = todayAttendanceDraft[s.roll] || 'p';
+      const safeSubj = subj.replace(/[^a-zA-Z0-9]/g, '');
+      const docId = `${safeSubj}_${date}_${s.roll}`;
+      const record = {
+        subject: subj,
+        date: date,
+        rollNo: String(s.roll),
+        status: status,
+        markedBy: currentUser.name
+      };
+      return window.setDoc(window.doc(window.db, "Attendance", docId), record)
+        .then(() => {
+          const idx = window.ATTENDANCE.findIndex(a => a.id === docId);
+          if (idx >= 0) window.ATTENDANCE[idx] = { id: docId, ...record };
+          else window.ATTENDANCE.push({ id: docId, ...record });
         });
+    });
 
-        await Promise.all(promises);
-        showToast('Attendance saved for ' + subj + ' ✓');
-        navigate('attendance');
-    } catch (error) {
-        console.error("Error saving attendance: ", error);
-        showToast('Failed to save attendance. Try again.', true);
-    }
+    await Promise.all(promises);
+    showToast('Attendance saved for ' + subj + ' ✓');
+    navigate('attendance');
+  } catch (error) {
+    console.error("Error saving attendance: ", error);
+    showToast('Failed to save attendance. Try again.', true);
+  }
 }
 
 // ── PAGE: TIMETABLE ───────────────────────────────────────────────────────────
 
-function renderTimetable() {
-    const rows = Object.entries(TIMETABLE).map(([time, classes]) => {
-        if (classes[0] === 'LUNCH') {
-            return `<div class="tt-time" style="font-size:11px">${time}</div>${[0, 1, 2, 3, 4].map(() => '<div class="tt-cell" style="background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--text3)">Lunch</div>').join('')}`;
-        }
-        return `<div class="tt-time">${time}</div>${classes.map((c, i) => {
-            if (!c) return `<div class="tt-cell"><div class="tt-class free">Free</div></div>`;
-            const isCancelled = cancelledClasses[c + '_' + DAYS[i]];
-            const isToday = i === TODAY_DAY;
-            return `<div class="tt-cell"><div class="tt-class ${isCancelled ? 'cancelled-class' : isToday ? 'active-class' : ''}">${c}${isCancelled ? ' 🚫' : ''}</div></div>`;
-        }).join('')}`;
-    }).join('');
+function renderTimetable() { // Section decide karo based on logged-in student's roll
+  let activeTable = TIMETABLE;
+  let sectionLabel = 'Section A';
+  if (currentUser.role === 'student') {
+    const sec = getStudentSection(currentUser.email); // email mein roll no. store hai
+    if (sec === 'B') {
+      activeTable = TIMETABLE_B;
+      sectionLabel = 'Section B';
+    }
+  }
 
-    return `<div class="page active">
+  const rows = Object.entries(activeTable).map(([time, classes]) => {
+    if (classes[0] === 'LUNCH') {
+      return `<div class="tt-time" style="font-size:11px">${time}</div>${[0, 1, 2, 3, 4].map(() => '<div class="tt-cell" style="background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--text3)">Lunch</div>').join('')}`;
+    }
+    return `<div class="tt-time">${time}</div>${classes.map((c, i) => {
+      if (!c) return `<div class="tt-cell"><div class="tt-class free">Free</div></div>`;
+      const isCancelled = cancelledClasses[c + '_' + DAYS[i]];
+      const isToday = i === TODAY_DAY;
+      return `<div class="tt-cell"><div class="tt-class ${isCancelled ? 'cancelled-class' : isToday ? 'active-class' : ''}">${c}${isCancelled ? ' 🚫' : ''}</div></div>`;
+    }).join('')}`;
+  }).join('');
+
+  return `<div class="page active">
     <div class="page-title">Weekly Timetable</div>
-    <div class="page-sub">B.Tech CS Sem 3 Section A — ${getTodayLabel()}</div>
+    <div class="page-sub">B.Tech CS Sem 3 ${sectionLabel} — ${getTodayLabel()}</div>
     <div class="alert-banner info" style="margin-bottom:16px">
       <div class="icon">ℹ️</div>
       <div class="alert-text"><strong>${TODAY_DAY === -1 ? "It's the weekend" : 'Today is ' + DAYS[TODAY_DAY]}</strong><span>Classes highlighted in blue are today's classes. Classes marked 🚫 are cancelled.</span></div>
-      </div>
+    </div>
     <div class="section-card" style="padding:0;overflow:hidden">
       <div class="timetable">
         <div class="tt-header">Time</div>
@@ -981,8 +1127,8 @@ async function updateComplaint(id, status) {
 // ── PAGE: PROFILE ─────────────────────────────────────────────────────────────
 
 function renderProfile() {
-    const rollNo = currentUser.email; // yahan roll number store hota hai
-const s = STUDENTS.find(stu => String(stu.roll) === String(rollNo));
+  const rollNo = currentUser.email; // yahan roll number store hota hai
+  const s = STUDENTS.find(stu => String(stu.roll) === String(rollNo));
     const avg = getOverallAttendance(currentUser.roll);
 
     return `<div class="page active">
@@ -1002,7 +1148,7 @@ const s = STUDENTS.find(stu => String(stu.roll) === String(rollNo));
       </div>
       <button class="btn btn-outline btn-sm" style="margin-top:14px; background-color:#8095e9; color:#041a74" onclick="showChangePasswordForm()">🔒 Change Password</button>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
-        ${[['Email', s.email || 'Not set'], ['Phone', '+91 90*** ***01'], ['Department', 'Computer Engg.'], ['Semester', '3rd Semester'], ['Section', 'Section A'], ['Advisor', 'Prof. Divya']].map(([l, v]) => `
+        ${[['Email', s.email || 'Not set'], ['Phone', '+91 90*** ***01'], ['Department', 'Computer Engg.'], ['Semester', '3rd Semester'], ['Section', `Section ${getStudentSection(s.roll)}`], ['Advisor', 'Prof. Divya']].map(([l, v]) => `
           <div>
             <div style="font-size:12px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px">${l}</div>
             <div style="font-size:14px;font-weight:500">${v}</div>
@@ -1035,9 +1181,9 @@ const s = STUDENTS.find(stu => String(stu.roll) === String(rollNo));
 window.PYQS = window.PYQS || [];
 
 function renderPYQ() {
-    const isAdmin = currentUser.role === 'admin' || currentUser.role === 'teacher';
+  const isAdmin = currentUser.role === 'admin' || currentUser.role === 'teacher';
 
-    return `<div class="page active">
+  return `<div class="page active">
     <div class="page-title">PYQ Papers 📄</div>
     <div class="page-sub">Previous Year Question Papers — Filter by Semester & Year</div>
 
@@ -1052,13 +1198,13 @@ function renderPYQ() {
         <div class="form-group">
           <label>Semester</label>
           <select id="pyq-sem">
-            ${[1,2,3,4,5,6,7,8].map(s => `<option value="${s}" ${s==3?'selected':''}>Sem ${s}</option>`).join('')}
+            ${[1, 2, 3, 4, 5, 6, 7, 8].map(s => `<option value="${s}" ${s == 3 ? 'selected' : ''}>Sem ${s}</option>`).join('')}
           </select>
         </div>
         <div class="form-group">
           <label>Exam Year</label>
           <select id="pyq-year">
-            ${[2025,2024,2023,2022,2021,2020].map(y => `<option value="${y}">${y}</option>`).join('')}
+            ${[2025, 2024, 2023, 2022, 2021, 2020].map(y => `<option value="${y}">${y}</option>`).join('')}
           </select>
         </div>
       </div>
@@ -1088,41 +1234,41 @@ function renderPYQ() {
           <label>Filter by Semester</label>
           <select id="pyq-filter-sem" onchange="filterPYQs()">
             <option value="">All Semesters</option>
-            ${[1,2,3,4,5,6,7,8].map(s =>
-              `<option value="${s}" ${s==3?'selected':''}>Sem ${s}</option>`
-            ).join('')}
+            ${[1, 2, 3, 4, 5, 6, 7, 8].map(s =>
+    `<option value="${s}" ${s == 3 ? 'selected' : ''}>Sem ${s}</option>`
+  ).join('')}
           </select>
         </div>
         <div class="form-group">
           <label>Filter by Year</label>
           <select id="pyq-filter-year" onchange="filterPYQs()">
             <option value="">All Years</option>
-            ${[2025,2024,2023,2022,2021,2020].map(y =>
-              `<option value="${y}">${y}</option>`
-            ).join('')}
+            ${[2025, 2024, 2023, 2022, 2021, 2020].map(y =>
+    `<option value="${y}">${y}</option>`
+  ).join('')}
           </select>
         </div>
       </div>
-      <div id="pyq-list">${buildPYQList('3','')}</div>
+      <div id="pyq-list">${buildPYQList('3', '')}</div>
     </div>
   </div>`;
 }
 
-function buildPYQList(semFilter='3', yearFilter='') {
-    const list = (window.PYQS || []).filter(p => {
-        const semMatch  = !semFilter  || String(p.sem)  === String(semFilter);
-        const yearMatch = !yearFilter || String(p.year) === String(yearFilter);
-        return semMatch && yearMatch;
-    });
+function buildPYQList(semFilter = '3', yearFilter = '') {
+  const list = (window.PYQS || []).filter(p => {
+    const semMatch = !semFilter || String(p.sem) === String(semFilter);
+    const yearMatch = !yearFilter || String(p.year) === String(yearFilter);
+    return semMatch && yearMatch;
+  });
 
-    if (list.length === 0) {
-        return `<div class="empty-state">
+  if (list.length === 0) {
+    return `<div class="empty-state">
           <div class="icon">📂</div>
           <p>No PYQs found for selected filters</p>
         </div>`;
-    }
+  }
 
-    return list.map(p => `
+  return list.map(p => `
     <div style="display:flex;align-items:center;justify-content:space-between;
                 padding:14px 0;border-bottom:1px solid var(--border)">
       <div style="display:flex;align-items:center;gap:12px">
@@ -1147,95 +1293,95 @@ function buildPYQList(semFilter='3', yearFilter='') {
 }
 
 function filterPYQs() {
-    const sem  = document.getElementById('pyq-filter-sem').value;
-    const year = document.getElementById('pyq-filter-year').value;
-    document.getElementById('pyq-list').innerHTML = buildPYQList(sem, year);
+  const sem = document.getElementById('pyq-filter-sem').value;
+  const year = document.getElementById('pyq-filter-year').value;
+  document.getElementById('pyq-list').innerHTML = buildPYQList(sem, year);
 }
 
 async function uploadPYQ() {
-    const subject = document.getElementById('pyq-subject').value.trim();
-    const sem     = document.getElementById('pyq-sem').value;
-    const year    = document.getElementById('pyq-year').value;
-    const file    = document.getElementById('pyq-file').files[0];
-    const msgDiv  = document.getElementById('pyq-msg');
+  const subject = document.getElementById('pyq-subject').value.trim();
+  const sem = document.getElementById('pyq-sem').value;
+  const year = document.getElementById('pyq-year').value;
+  const file = document.getElementById('pyq-file').files[0];
+  const msgDiv = document.getElementById('pyq-msg');
 
-    if (!subject) { showToast('Subject name daalo', true); return; }
-    if (!file)    { showToast('PDF file select karo', true); return; }
-    if (file.type !== 'application/pdf') { showToast('Sirf PDF allowed hai', true); return; }
-    if (file.size > 10 * 1024 * 1024)   { showToast('File 10MB se chhoti honi chahiye', true); return; }
+  if (!subject) { showToast('Subject name daalo', true); return; }
+  if (!file) { showToast('PDF file select karo', true); return; }
+  if (file.type !== 'application/pdf') { showToast('Sirf PDF allowed hai', true); return; }
+  if (file.size > 10 * 1024 * 1024) { showToast('File 10MB se chhoti honi chahiye', true); return; }
 
-    // Cloudinary upload via fetch (no SDK needed!)
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('upload_preset', 'pyq_upload');
-    formData.append('resource_type', 'raw');
+  // Cloudinary upload via fetch (no SDK needed!)
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('upload_preset', 'pyq_upload');
+  formData.append('resource_type', 'raw');
 
-    document.getElementById('pyq-upload-progress').style.display = 'block';
-    msgDiv.textContent = '';
+  document.getElementById('pyq-upload-progress').style.display = 'block';
+  msgDiv.textContent = '';
 
-    // Progress simulation (Cloudinary fetch doesn't give real progress)
-    let fakeP = 0;
-    const fakeInterval = setInterval(() => {
-        fakeP = Math.min(fakeP + 10, 90);
-        document.getElementById('pyq-pct').textContent = fakeP;
-        document.getElementById('pyq-progress-fill').style.width = fakeP + '%';
-    }, 300);
+  // Progress simulation (Cloudinary fetch doesn't give real progress)
+  let fakeP = 0;
+  const fakeInterval = setInterval(() => {
+    fakeP = Math.min(fakeP + 10, 90);
+    document.getElementById('pyq-pct').textContent = fakeP;
+    document.getElementById('pyq-progress-fill').style.width = fakeP + '%';
+  }, 300);
 
-    try {
-        const res = await fetch(
-    `https://api.cloudinary.com/v1_1/dhdxrb98h/raw/upload`,
-            { method: 'POST', body: formData }
-        );
-        const data = await res.json();
+  try {
+    const res = await fetch(
+      `https://api.cloudinary.com/v1_1/dhdxrb98h/raw/upload`,
+      { method: 'POST', body: formData }
+    );
+    const data = await res.json();
 
-        clearInterval(fakeInterval);
+    clearInterval(fakeInterval);
 
-        if (data.error) {
-            showToast('Upload failed: ' + data.error.message, true);
-            document.getElementById('pyq-upload-progress').style.display = 'none';
-            return;
-        }
-
-        document.getElementById('pyq-pct').textContent = '100';
-        document.getElementById('pyq-progress-fill').style.width = '100%';
-
-        const pyqData = {
-            subject,
-            sem      : Number(sem),
-            year     : Number(year),
-            url      : data.secure_url,
-            publicId : data.public_id,
-            uploadedBy: currentUser.name,
-            uploadedAt: new Date().toLocaleDateString('en-GB')
-        };
-
-        const docRef = await window.addDoc(
-            window.collection(window.db, "PYQs"), pyqData
-        );
-        window.PYQS.unshift({ id: docRef.id, ...pyqData });
-
-        showToast('PYQ uploaded successfully ✓');
-        setTimeout(() => navigate('pyq'), 800);
-
-    } catch (err) {
-        clearInterval(fakeInterval);
-        console.error(err);
-        showToast('Upload failed. Internet check karo.', true);
-        document.getElementById('pyq-upload-progress').style.display = 'none';
+    if (data.error) {
+      showToast('Upload failed: ' + data.error.message, true);
+      document.getElementById('pyq-upload-progress').style.display = 'none';
+      return;
     }
+
+    document.getElementById('pyq-pct').textContent = '100';
+    document.getElementById('pyq-progress-fill').style.width = '100%';
+
+    const pyqData = {
+      subject,
+      sem: Number(sem),
+      year: Number(year),
+      url: data.secure_url,
+      publicId: data.public_id,
+      uploadedBy: currentUser.name,
+      uploadedAt: new Date().toLocaleDateString('en-GB')
+    };
+
+    const docRef = await window.addDoc(
+      window.collection(window.db, "PYQs"), pyqData
+    );
+    window.PYQS.unshift({ id: docRef.id, ...pyqData });
+
+    showToast('PYQ uploaded successfully ✓');
+    setTimeout(() => navigate('pyq'), 800);
+
+  } catch (err) {
+    clearInterval(fakeInterval);
+    console.error(err);
+    showToast('Upload failed. Internet check karo.', true);
+    document.getElementById('pyq-upload-progress').style.display = 'none';
+  }
 }
 
 async function deletePYQ(id, publicId) {
-    if (!confirm('Yeh PYQ delete karna chahte ho?')) return;
-    try {
-        await window.deleteDoc(window.doc(window.db, "PYQs", id));
-        window.PYQS = window.PYQS.filter(p => p.id !== id);
-        showToast('PYQ deleted ✓');
-        navigate('pyq');
-    } catch(e) {
-        console.error(e);
-        showToast('Delete failed', true);
-    }
+  if (!confirm('Yeh PYQ delete karna chahte ho?')) return;
+  try {
+    await window.deleteDoc(window.doc(window.db, "PYQs", id));
+    window.PYQS = window.PYQS.filter(p => p.id !== id);
+    showToast('PYQ deleted ✓');
+    navigate('pyq');
+  } catch (e) {
+    console.error(e);
+    showToast('Delete failed', true);
+  }
 }
 
 function showChangePasswordForm() {
