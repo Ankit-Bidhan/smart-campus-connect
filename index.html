@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- SEO -->
+  <title>Campus Connect — SIET Nilokheri | Student Portal</title>
+  <meta name="description" content="Official student portal of State Institute of Engineering & Technology, Nilokheri. Access PYQ papers, attendance, timetable and more. Affiliated to Kurukshetra University." />
+  <meta name="keywords" content="SIET Nilokheri, State Institute of Engineering Technology Nilokheri, campus connect, student portal, PYQ papers, KUK, Kurukshetra University, Karnal, Haryana engineering college" />
+  <meta name="robots" content="index, follow" />
+  <meta name="author" content="SIET Nilokheri" />
+  <link rel="canonical" href="https://campus-connect-by-aa.netlify.app/" />
+
+  <!-- Open Graph (for WhatsApp/social sharing preview) -->
+  <meta property="og:title" content="Campus Connect — SIET Nilokheri" />
+  <meta property="og:description" content="Official student portal of State Institute of Engineering & Technology, Nilokheri. Download PYQ papers, check attendance, view timetable." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://campus-connect-by-aa.netlify.app/" />
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --navy:   #1b2a6b;
+      --navy2:  #14205a;
+      --gold:   #c9a227;
+      --gold2:  #f0c040;
+      --green:  #2d7a3e;
+      --green2: #3a9e52;
+      --white:  #ffffff;
+      --bg:     #f4f6fc;
+      --text:   #1a1f36;
+      --text2:  #4a5568;
+      --text3:  #718096;
+      --border: #e2e8f0;
+      --red:    #e53e3e;
+      --radius: 12px;
+      --shadow: 0 4px 24px rgba(27,42,107,0.10);
+    }
+
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+    }
+
+    /* ── TOPBAR ── */
+    .topbar {
+      position: sticky; top: 0; z-index: 100;
+      background: var(--navy);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 32px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.2);
+    }
+    .topbar-brand { display: flex; align-items: center; gap: 12px; text-decoration: none; }
+    .topbar-logo-img { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; }
+    .topbar-name { color: var(--white); font-size: 15px; font-weight: 700; line-height: 1.2; }
+    .topbar-name span { color: var(--gold2); display: block; font-size: 11px; font-weight: 400; opacity: 0.85; }
+    .topbar-right { display: flex; align-items: center; gap: 12px; }
+    .btn-login {
+      background: var(--gold); color: var(--navy2);
+      border: none; border-radius: 8px;
+      padding: 8px 20px; font-size: 14px; font-weight: 700;
+      cursor: pointer; transition: background 0.2s;
+      text-decoration: none;
+    }
+    .btn-login:hover { background: var(--gold2); }
+
+    /* ── HERO ── */
+    .hero {
+      background: linear-gradient(135deg, var(--navy2) 0%, var(--navy) 60%, #223580 100%);
+      padding: 64px 32px 80px;
+      display: flex; align-items: center; gap: 48px;
+      flex-wrap: wrap;
+    }
+    .hero-left { flex: 1; min-width: 280px; }
+    .hero-eyebrow {
+      display: inline-block;
+      background: rgba(201,162,39,0.15);
+      color: var(--gold2);
+      border: 1px solid rgba(201,162,39,0.3);
+      padding: 4px 14px; border-radius: 20px;
+      font-size: 12px; font-weight: 600; letter-spacing: 0.5px;
+      margin-bottom: 18px;
+    }
+    .hero h1 {
+      font-size: clamp(28px, 4vw, 46px);
+      font-weight: 800; color: var(--white);
+      line-height: 1.15; margin-bottom: 8px;
+    }
+    .hero h1 span { color: var(--gold2); }
+    .hero-sub {
+      font-size: 15px; color: rgba(255,255,255,0.7);
+      margin-bottom: 8px; font-weight: 400;
+    }
+    .hero-college {
+      font-size: 13px; color: rgba(255,255,255,0.5);
+      margin-bottom: 32px;
+    }
+    .hero-college a { color: var(--gold); text-decoration: none; }
+    .hero-ctas { display: flex; gap: 12px; flex-wrap: wrap; }
+    .btn-hero-primary {
+      background: var(--gold); color: var(--navy2);
+      border: none; border-radius: 10px;
+      padding: 13px 28px; font-size: 15px; font-weight: 700;
+      cursor: pointer; text-decoration: none;
+      transition: transform 0.15s, background 0.2s;
+      display: inline-block;
+    }
+    .btn-hero-primary:hover { background: var(--gold2); transform: translateY(-2px); }
+    .btn-hero-outline {
+      background: transparent; color: var(--white);
+      border: 2px solid rgba(255,255,255,0.35); border-radius: 10px;
+      padding: 12px 28px; font-size: 15px; font-weight: 600;
+      cursor: pointer; text-decoration: none;
+      transition: border-color 0.2s, background 0.2s;
+      display: inline-block;
+    }
+    .btn-hero-outline:hover { border-color: var(--gold2); background: rgba(201,162,39,0.1); }
+
+    .hero-right {
+      flex: 0 0 auto;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .logo-ring {
+      width: 200px; height: 200px;
+      border-radius: 50%;
+      border: 4px solid var(--gold);
+      box-shadow: 0 0 40px rgba(201,162,39,0.25), 0 0 0 12px rgba(201,162,39,0.08);
+      overflow: hidden;
+      background: white;
+    }
+    .logo-ring img { width: 100%; height: 100%; object-fit: cover; }
+
+    /* ── STATS STRIP ── */
+    .stats-strip {
+      background: var(--white);
+      display: flex; justify-content: center; flex-wrap: wrap; gap: 0;
+      border-bottom: 3px solid var(--gold);
+      box-shadow: var(--shadow);
+    }
+    .stat-item {
+      flex: 1; min-width: 140px;
+      padding: 20px 24px;
+      text-align: center;
+      border-right: 1px solid var(--border);
+    }
+    .stat-item:last-child { border-right: none; }
+    .stat-num { font-size: 28px; font-weight: 800; color: var(--navy); }
+    .stat-label { font-size: 12px; color: var(--text3); font-weight: 500; margin-top: 2px; }
+
+    /* ── SECTIONS ── */
+    .section { padding: 56px 32px; max-width: 1100px; margin: 0 auto; }
+    .section-title {
+      font-size: 22px; font-weight: 700; color: var(--navy);
+      margin-bottom: 6px;
+    }
+    .section-sub { font-size: 14px; color: var(--text3); margin-bottom: 32px; }
+
+    /* ── PYQ ── */
+    .pyq-section { background: var(--white); }
+    .pyq-inner { max-width: 1100px; margin: 0 auto; padding: 56px 32px; }
+    .pyq-filters {
+      display: flex; gap: 12px; flex-wrap: wrap;
+      margin-bottom: 24px;
+    }
+    .pyq-filters select {
+      padding: 9px 14px; border: 1.5px solid var(--border);
+      border-radius: 8px; font-size: 14px; font-family: 'Poppins', sans-serif;
+      color: var(--text); background: var(--bg); cursor: pointer;
+      outline: none; transition: border-color 0.2s;
+    }
+    .pyq-filters select:focus { border-color: var(--navy); }
+
+    .pyq-list { display: flex; flex-direction: column; gap: 0; }
+    .pyq-item {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 4px;
+      border-bottom: 1px solid var(--border);
+      gap: 12px;
+    }
+    .pyq-item:last-child { border-bottom: none; }
+    .pyq-icon {
+      width: 44px; height: 44px; flex-shrink: 0;
+      background: #fff0f0; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center; font-size: 22px;
+    }
+    .pyq-info { flex: 1; min-width: 0; }
+    .pyq-name { font-size: 14px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .pyq-meta { font-size: 12px; color: var(--text3); margin-top: 2px; }
+    .btn-download {
+      background: var(--navy); color: var(--white);
+      border: none; border-radius: 8px;
+      padding: 8px 16px; font-size: 13px; font-weight: 600;
+      cursor: pointer; text-decoration: none; white-space: nowrap;
+      transition: background 0.2s;
+      display: inline-block;
+    }
+    .btn-download:hover { background: var(--navy2); }
+    .pyq-empty {
+      text-align: center; padding: 40px;
+      color: var(--text3); font-size: 14px;
+    }
+    .pyq-loading { text-align: center; padding: 32px; color: var(--text3); }
+    .pyq-error { text-align: center; padding: 32px; color: var(--red); font-size: 14px; }
+
+    /* ── FEATURES ── */
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+      gap: 20px;
+    }
+    .feature-card {
+      background: var(--white);
+      border-radius: var(--radius);
+      padding: 24px;
+      box-shadow: var(--shadow);
+      border-top: 3px solid transparent;
+      transition: transform 0.2s;
+    }
+    .feature-card:hover { transform: translateY(-4px); }
+    .feature-card.blue  { border-top-color: var(--navy); }
+    .feature-card.gold  { border-top-color: var(--gold); }
+    .feature-card.green { border-top-color: var(--green); }
+    .feature-card.red   { border-top-color: #e53e3e; }
+    .feature-icon { font-size: 28px; margin-bottom: 12px; }
+    .feature-title { font-size: 15px; font-weight: 700; color: var(--navy); margin-bottom: 6px; }
+    .feature-desc { font-size: 13px; color: var(--text2); line-height: 1.6; }
+
+    /* ── ABOUT ── */
+    .about-grid { display: flex; gap: 32px; flex-wrap: wrap; align-items: flex-start; }
+    .about-card {
+      flex: 1; min-width: 260px;
+      background: var(--white);
+      border-radius: var(--radius);
+      padding: 24px;
+      box-shadow: var(--shadow);
+    }
+    .about-card h3 { font-size: 15px; font-weight: 700; color: var(--navy); margin-bottom: 10px; }
+    .about-card p { font-size: 13px; color: var(--text2); line-height: 1.75; }
+    .info-row { display: flex; gap: 8px; align-items: flex-start; margin-bottom: 8px; font-size: 13px; color: var(--text2); }
+    .info-row span:first-child { font-size: 16px; flex-shrink: 0; }
+    .info-row a { color: var(--navy); text-decoration: none; font-weight: 500; }
+    .info-row a:hover { text-decoration: underline; }
+
+    /* ── CTA BANNER ── */
+    .cta-banner {
+      background: linear-gradient(135deg, var(--navy) 0%, var(--green) 100%);
+      padding: 56px 32px; text-align: center;
+    }
+    .cta-banner h2 { font-size: 26px; font-weight: 800; color: var(--white); margin-bottom: 10px; }
+    .cta-banner p { font-size: 15px; color: rgba(255,255,255,0.75); margin-bottom: 28px; }
+
+    /* ── FOOTER ── */
+    footer {
+      background: var(--navy2);
+      color: rgba(255,255,255,0.65);
+      padding: 32px;
+      text-align: center;
+      font-size: 13px;
+    }
+    footer a { color: var(--gold); text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+    footer .footer-links { display: flex; justify-content: center; gap: 20px; flex-wrap: wrap; margin-bottom: 16px; }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 600px) {
+      .topbar { padding: 10px 16px; }
+      .hero { padding: 40px 16px 56px; }
+      .hero-right { display: none; }
+      .section, .pyq-inner { padding: 40px 16px; }
+      .stats-strip { justify-content: flex-start; }
+      .stat-item { min-width: 120px; }
+      footer { padding: 24px 16px; }
+    }
+  </style>
+</head>
+
+<body>
+
+<!-- ── TOPBAR ── -->
+<header class="topbar">
+  <a href="/" class="topbar-brand">
+    <img class="topbar-logo-img" src="siet-logo.png" alt="SIET Nilokheri Logo" onerror="this.style.display='none'" />
+    <div class="topbar-name">
+      CampusConnect
+      <span>SIET Nilokheri</span>
+    </div>
+  </a>
+  <div class="topbar-right">
+    <a href="app.html" class="btn-login">Student Login →</a>
+  </div>
+</header>
+
+<!-- ── HERO ── -->
+<section class="hero">
+  <div class="hero-left">
+    <div class="hero-eyebrow">🎓 Official Student Portal</div>
+    <h1>Smart Campus,<br><span>Smarter Students</span></h1>
+    <p class="hero-sub">Attendance · Timetable · PYQ Papers · Notifications</p>
+    <p class="hero-college">
+      State Institute of Engineering &amp; Technology, Nilokheri &nbsp;·&nbsp;
+      Affiliated to <a href="https://www.kuk.ac.in" target="_blank">Kurukshetra University</a>
+    </p>
+    <div class="hero-ctas">
+      <a href="app.html" class="btn-hero-primary">Login to Portal</a>
+      <a href="#pyq" class="btn-hero-outline">📄 Browse PYQ Papers</a>
+    </div>
+  </div>
+  <div class="hero-right">
+    <div class="logo-ring">
+      <img src="siet-logo.png" alt="SIET Nilokheri" />
+    </div>
+  </div>
+</section>
+
+<!-- ── STATS ── -->
+<div class="stats-strip">
+  <div class="stat-item">
+    <div class="stat-num">8</div>
+    <div class="stat-label">Semesters</div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-num" id="stat-pyq">—</div>
+    <div class="stat-label">PYQ Papers</div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-num">100+</div>
+    <div class="stat-label">Students</div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-num">KUK</div>
+    <div class="stat-label">Affiliated University</div>
+  </div>
+</div>
+
+<!-- ── PYQ PAPERS ── -->
+<div class="pyq-section" id="pyq">
+  <div class="pyq-inner">
+    <div class="section-title">📄 Previous Year Question Papers</div>
+    <div class="section-sub">Download PYQ papers — no login required. Filter by semester or year.</div>
+
+    <div class="pyq-filters">
+      <select id="filter-sem" onchange="filterPYQ()">
+        <option value="">All Semesters</option>
+        <option value="1">Semester 1</option>
+        <option value="2">Semester 2</option>
+        <option value="3">Semester 3</option>
+        <option value="4">Semester 4</option>
+        <option value="5">Semester 5</option>
+        <option value="6">Semester 6</option>
+        <option value="7">Semester 7</option>
+        <option value="8">Semester 8</option>
+      </select>
+      <select id="filter-year" onchange="filterPYQ()">
+        <option value="">All Years</option>
+        <option value="2025">2025</option>
+        <option value="2024">2024</option>
+        <option value="2023">2023</option>
+        <option value="2022">2022</option>
+        <option value="2021">2021</option>
+        <option value="2020">2020</option>
+      </select>
+    </div>
+
+    <div id="pyq-list">
+      <div class="pyq-loading">⏳ Loading PYQ papers...</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── FEATURES ── -->
+<section class="section">
+  <div class="section-title">What's inside the Portal?</div>
+  <div class="section-sub">Login with your roll number to access all features.</div>
+
+  <div class="features-grid">
+    <div class="feature-card blue">
+      <div class="feature-icon">📅</div>
+      <div class="feature-title">Attendance Tracking</div>
+      <div class="feature-desc">Check your subject-wise attendance percentage in real time. Get alerts when attendance drops below 75%.</div>
+    </div>
+    <div class="feature-card gold">
+      <div class="feature-icon">🗓️</div>
+      <div class="feature-title">Live Timetable</div>
+      <div class="feature-desc">View your weekly class schedule. Cancelled classes are highlighted instantly so you're never caught off guard.</div>
+    </div>
+    <div class="feature-card green">
+      <div class="feature-icon">📄</div>
+      <div class="feature-title">PYQ Papers</div>
+      <div class="feature-desc">Download previous year question papers filtered by semester and exam year — freely available, no login needed.</div>
+    </div>
+    <div class="feature-card red">
+      <div class="feature-icon">📋</div>
+      <div class="feature-title">Complaint System</div>
+      <div class="feature-desc">File and track complaints directly through the portal. Faculty can respond and update status in real time.</div>
+    </div>
+    <div class="feature-card blue">
+      <div class="feature-icon">🔔</div>
+      <div class="feature-title">Notifications</div>
+      <div class="feature-desc">Receive instant alerts about cancelled classes, new announcements, and important updates from faculty.</div>
+    </div>
+    <div class="feature-card gold">
+      <div class="feature-icon">👩‍🏫</div>
+      <div class="feature-title">Teacher Dashboard</div>
+      <div class="feature-desc">Mark attendance, cancel classes, send notifications, and manage student records — all from one place.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ── ABOUT ── -->
+<div style="background: var(--white);">
+  <section class="section">
+    <div class="section-title">About SIET Nilokheri</div>
+    <div class="section-sub">State Institute of Engineering &amp; Technology, Nilokheri</div>
+    <div class="about-grid">
+      <div class="about-card">
+        <h3>🏛️ Institute</h3>
+        <p>State Institute of Engineering &amp; Technology, Nilokheri (SIET) is a government engineering college in Haryana, committed to providing quality technical education and industrial training to students since its establishment.</p>
+        <br>
+        <p style="font-style:italic;color:var(--text3);font-size:12px">"प्रौद्योगिकया: कृते उत्तमशिक्षा"</p>
+      </div>
+      <div class="about-card">
+        <h3>📍 Contact &amp; Location</h3>
+        <div class="info-row">
+          <span>📌</span>
+          <span>Nilokheri, Dist. Karnal, Haryana — on NH44 between Karnal &amp; Kurukshetra</span>
+        </div>
+        <div class="info-row">
+          <span>🎓</span>
+          <span>Affiliated to <a href="https://www.kuk.ac.in" target="_blank">Kurukshetra University, Kurukshetra</a></span>
+        </div>
+        <div class="info-row">
+          <span>🌐</span>
+          <span><a href="https://gecnilokheri.ac.in" target="_blank">gecnilokheri.ac.in</a></span>
+        </div>
+        <div class="info-row">
+          <span>👨‍💼</span>
+          <span>Director-Principal: Prof. Dr. Anil Kumar Rose</span>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- ── CTA BANNER ── -->
+<div class="cta-banner">
+  <h2>Ready to get started?</h2>
+  <p>Login with your university roll number to access attendance, timetable, complaints and more.</p>
+  <a href="app.html" class="btn-hero-primary">Login to CampusConnect →</a>
+</div>
+
+<!-- ── FOOTER ── -->
+<footer>
+  <div class="footer-links">
+    <a href="https://gecnilokheri.ac.in" target="_blank">Official College Website</a>
+    <a href="https://www.kuk.ac.in" target="_blank">KUK University</a>
+    <a href="app.html">Student Login</a>
+    <a href="#pyq">PYQ Papers</a>
+  </div>
+  <p>© 2026 Campus Connect — State Institute of Engineering &amp; Technology, Nilokheri</p>
+  <p style="margin-top:6px;font-size:12px;opacity:0.6">Nilokheri, Dist. Karnal, Haryana · NH44 · Affiliated to Kurukshetra University</p>
+</footer>
+
+<!-- ── FIREBASE (module) for live PYQ fetch ── -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyD8a44AQf81SY8fkvyKFV9gGsZ-X3ubgY4",
+    authDomain: "smart-campus-connect-siet.firebaseapp.com",
+    projectId: "smart-campus-connect-siet",
+    storageBucket: "smart-campus-connect-siet.firebasestorage.app",
+    messagingSenderId: "654877774859",
+    appId: "1:654877774859:web:fef7926800f07400dbe30e"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db  = getFirestore(app);
+
+  let allPYQs = [];
+
+  async function loadPYQs() {
+    try {
+      const snapshot = await getDocs(collection(db, "PYQs"));
+      allPYQs = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+
+      // Update stat counter
+      const statEl = document.getElementById('stat-pyq');
+      if (statEl) statEl.textContent = allPYQs.length || '0';
+
+      renderList();
+    } catch (err) {
+      console.error('PYQ load error:', err);
+      document.getElementById('pyq-list').innerHTML =
+        `<div class="pyq-error">⚠️ Could not load PYQ papers. Please check your internet connection or try again.<br><small style="color:var(--text3)">(Firestore rules mein PYQs collection ko public read allow karo — see note below)</small></div>`;
+    }
+  }
+
+  function renderList() {
+      const sem = document.getElementById('filter-sem').value;
+      const year = document.getElementById('filter-year').value;
+
+      const el = document.getElementById('pyq-list');
+      if (!el) return;
+
+      // Semester select kiye bina kuch mat dikhao
+      if (!sem) {
+        el.innerHTML = `<div class="pyq-empty">📌 Pehle semester select karo PYQ papers dekhne ke liye.</div>`;
+        return;
+      }
+
+      const filtered = allPYQs.filter(p => {
+        const semOk = String(p.sem) === sem;
+        const yearOk = !year || String(p.year) === year;
+        return semOk && yearOk;
+      });
+
+      // Alphabetical sort — same subject ke saare PYQs saath mein
+      filtered.sort((a, b) => (a.subject || '').localeCompare(b.subject || '') || (b.year - a.year));
+
+      if (filtered.length === 0) {
+        el.innerHTML = `<div class="pyq-empty">📂 No PYQ papers found for selected filters.<br><small>Try selecting a different semester or year.</small></div>`;
+        return;
+      }
+
+      el.innerHTML = `<div class="pyq-list">` + filtered.map(p => `
+      <div class="pyq-item">
+        <div class="pyq-icon">📄</div>
+        <div class="pyq-info">
+          <div class="pyq-name">${p.subject || 'Unknown Subject'}</div>
+          <div class="pyq-meta">Sem ${p.sem || '—'} &nbsp;·&nbsp; Year ${p.year || '—'} &nbsp;·&nbsp; Uploaded by ${p.uploadedBy || 'Faculty'}</div>
+        </div>
+        <a href="${p.url}" target="_blank" rel="noopener" class="btn-download">⬇️ Download</a>
+      </div>`).join('') + `</div>`;
+    }
+
+  // Expose filterPYQ globally
+  window.filterPYQ = renderList;
+  loadPYQs();
+</script>
+
+</body>
+</html>
