@@ -1,5 +1,4 @@
 // ── DATA ──────────────────────────────────────────────────────────────────────
-
 // Admin/Teacher accounts are now authenticated via Firebase Auth (see STATIC_EMAIL_MAP below)
 let currentUser = null;
 window.STUDENTS = [];
@@ -79,7 +78,7 @@ function getAttendanceStats(rollNo, subject) {
     );
     const present = records.filter(a => a.status === 'p').length;
     const absent = records.filter(a => a.status === 'a').length;
-    const total = present + absent; // Late ignore — aapke decision ke mutabik
+    const total = present + absent;
     const pct = total === 0 ? 100 : Math.round((present / total) * 100);
     return { present, absent, total, pct };
 }
@@ -286,8 +285,16 @@ function buildSidebar() {
     }).join('');
 }
 
+function updateNotifBadge() {
+  const count = (window.NOTIFICATIONS || []).filter(n => !n.read).length;
+  const el = document.getElementById('notif-count');
+  if (el) el.textContent = count;
+}
+window.updateNotifBadge = updateNotifBadge;
+
 function navigate(page) {
     currentPage = page;
+    updateNotifBadge();   // for notification badge
     document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
     const navEl = document.getElementById('nav-' + page);
     if (navEl) navEl.classList.add('active');
@@ -325,7 +332,10 @@ function navigate(page) {
 function renderDashboard() {
     const r = currentUser.role;
     const unread = NOTIFICATIONS.filter(n => !n.read).length;
-    const cancelled = Object.keys(cancelledClasses).length;
+    const cancelled = TODAY_DAY === -1 ? 0 : Object.keys(cancelledClasses).filter(key => {
+      const parts = key.split('_');
+      return parts[parts.length - 1] === DAYS[TODAY_DAY];
+    }).length;
 
     // Cancelled class alerts for today
   const alerts = Object.entries(cancelledClasses)
@@ -353,7 +363,7 @@ function renderDashboard() {
       <div class="cards-grid">
         <div class="stat-card blue"><div class="label">Avg Attendance</div><div class="value">${avg}%</div><div class="sub">Across all subjects</div></div>
         <div class="stat-card green"><div class="label">Subjects</div><div class="value">${SUBJECTS.length}</div><div class="sub">Enrolled this semester</div></div>
-        <div class="stat-card amber"><div class="label">Complaints</div><div class="value">${COMPLAINTS.filter(c => c.by === 'Arjun Mehta').length}</div><div class="sub">Filed by you</div></div>
+        <div class="stat-card amber"><div class="label">Complaints</div><div class="value">${COMPLAINTS.filter(c => c.by === currentUser.name).length}</div><div class="sub">Filed by you</div></div>
         <div class="stat-card red"><div class="label">Notifications</div><div class="value">${unread}</div><div class="sub">Unread alerts</div></div>
       </div>
       <div class="section-card">
@@ -402,7 +412,7 @@ function renderDashboard() {
             return `<div class="cancel-class-item">
             <div><div style="font-size:14px;font-weight:600">${s}</div><div style="font-size:12px;color:var(--text3)">Room 201 · 50 students</div></div>
             <div style="display:flex;gap:8px;align-items:center">
-              ${isCancelled ? '<span class="badge cancelled">Cancelled</span>' : '<span class="badge present">Scheduled</span>'}
+              ${cancelled ? '<span class="badge cancelled">Cancelled</span>' : '<span class="badge present">Scheduled</span>'}
               <button class="btn btn-sm btn-outline" onclick="navigate('attendance')">Mark</button>
             </div>
           </div>`;
@@ -457,20 +467,110 @@ function renderDashboard() {
         </table>
       </div>
       <div class="section-card">
+        <h3>Analytics 📊</h3>
+        <div class="chart-tabs">
+          <button class="chart-tab active" onclick="switchChart('attendance',this)">Attendance</button>
+          <button class="chart-tab" onclick="switchChart('complaints',this)">Complaints</button>
+        </div>
+        <div class="chart-wrap" id="analytics-chart">${buildAttendanceChart()}</div>
+      </div>
+      <div class="section-card">
         <h3>All Complaints</h3>
         <table>
-          <thead><tr><th>Student</th><th>Subject</th><th>Category</th><th>Status</th></tr></thead>
+          <thead><tr><th>Student</th><th>Subject</th><th>Category</th><th>Upvotes</th><th>Status</th></tr></thead>
           <tbody>
-            ${COMPLAINTS.map(c => `
-              <tr>
-                <td>${c.by}</td>
-                <td style="max-width:220px">${c.subject}</td>
-                <td><span class="badge info">${c.category}</span></td>
-                <td><span class="badge ${c.status}">${c.status}</span></td>
-              </tr>`).join('')}
+          ${[...COMPLAINTS].sort((a, b) => (b.upvotes || 0) - (a.upvotes || 0)).map(c => `
+            <tr>
+              <td>${c.by}</td>
+              <td style="max-width:180px">${c.subject}</td>
+              <td><span class="badge info">${c.category}</span></td>
+              <td><span style="font-weight:700;color:var(--primary)">👍 ${c.upvotes || 0}</span></td>
+             <td><span class="badge ${c.status}">${c.status}</span></td>
+            </tr>`).join('')}
           </tbody>
         </table>
       </div>
+      
+    </div>`;
+}
+
+// ── ANALYTICS HELPERS ────────────────────────────────────────────────────────
+
+function switchChart(type, btn) {
+  document.querySelectorAll('.chart-tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const wrap = document.getElementById('analytics-chart');
+  if (!wrap) return;
+  wrap.innerHTML = type === 'attendance' ? buildAttendanceChart() : buildComplaintsChart();
+}
+
+function buildAttendanceChart() {
+  const ranges = [
+    { label: '<60%', min: 0, max: 60, color: 'var(--red)' },
+    { label: '60-75%', min: 60, max: 75, color: 'var(--amber)' },
+    { label: '75-85%', min: 75, max: 85, color: 'var(--blue)' },
+    { label: '85%+', min: 85, max: 101, color: 'var(--green)' },
+  ];
+  const counts = ranges.map(r =>
+    STUDENTS.filter(s => {
+      const a = getOverallAttendance(s.roll);
+      return a >= r.min && a < r.max;
+    }).length
+  );
+  const maxVal = Math.max(...counts, 1);
+  const CHART_H = 180;
+  const MIN_H = 8; // zero bhi ho toh ek thin bar dikhega
+  return `
+    <div style="margin-bottom:10px;font-size:12px;color:var(--text3);font-weight:600">Students by Attendance Range</div>
+    <div style="display:flex;align-items:flex-end;gap:16px;height:${CHART_H + 30}px;padding-bottom:28px;border-bottom:2px solid var(--border);position:relative">
+        ${ranges.map((r, i) => {
+          const logVal = counts[i] === 0 ? 0 : Math.log(counts[i] + 1);
+          const logMax = Math.log(maxVal + 1);
+          const h = counts[i] === 0 ? MIN_H : Math.max(MIN_H, Math.round((logVal / logMax) * CHART_H));
+    return `<div style="display:flex;flex-direction:column;align-items:center;flex:1;gap:0">
+                <div style="width:100%;height:${h}px;background:${r.color};border-radius:6px 6px 0 0;display:flex;align-items:flex-start;justify-content:center;padding-top:6px;position:relative" title="${counts[i]} students">
+               <span style="font-size:13px;font-weight:700;color:white;text-shadow:0 1px 3px rgba(0,0,0,0.4)">${counts[i]}</span>
+             </div>
+                <span style="font-size:12px;color:var(--text3);margin-top:8px;font-weight:500">${r.label}</span>
+            </div>`;
+  }).join('')}
+    </div>
+    <div style="display:flex;gap:16px;margin-top:12px;flex-wrap:wrap">
+        ${ranges.map(r => `<span style="font-size:12px;color:var(--text2);display:flex;align-items:center;gap:5px">
+            <span style="width:10px;height:10px;border-radius:50%;background:${r.color};display:inline-block"></span>${r.label}
+        </span>`).join('')}
+    </div>`;
+}
+
+function buildComplaintsChart() {
+  const cats = ['Academic', 'Infrastructure', 'Behavioural', 'Other'];
+  const catColors = ['var(--primary)', 'var(--amber)', 'var(--red)', 'var(--blue)'];
+  const counts = cats.map(cat => ({
+    cat,
+    total: COMPLAINTS.filter(c => c.category === cat).length,
+  }));
+  const maxVal = Math.max(...counts.map(c => c.total), 1);
+  const CHART_H = 180;
+  const MIN_H = 8;
+  return `
+    <div style="margin-bottom:10px;font-size:12px;color:var(--text3);font-weight:600">Complaints by Category</div>
+    <div style="display:flex;align-items:flex-end;gap:16px;height:${CHART_H + 40}px;padding-bottom:28px;border-bottom:2px solid var(--border)">
+        ${counts.map((c, i) => {
+    const logVal = c.total === 0 ? 0 : Math.log(c.total + 1);
+    const logMax = Math.log(maxVal + 1);
+    const h = c.total === 0 ? MIN_H : Math.max(MIN_H, Math.round((logVal / logMax) * CHART_H));
+    return `<div style="display:flex;flex-direction:column;align-items:center;flex:1;position:relative">
+                <div style="width:100%;height:${h}px;background:${catColors[i]};border-radius:6px 6px 0 0;position:relative">
+                    <span style="position:absolute;top:-22px;left:50%;transform:translateX(-50%);font-size:13px;font-weight:700;color:#111;white-space:nowrap">${c.total}</span>
+                </div>
+                <span style="font-size:12px;color:var(--text3);margin-top:8px;font-weight:500;text-align:center">${c.cat}</span>
+            </div>`;
+  }).join('')}
+    </div>
+    <div style="display:flex;gap:16px;margin-top:12px;flex-wrap:wrap">
+        ${cats.map((cat, i) => `<span style="font-size:12px;color:var(--text2);display:flex;align-items:center;gap:5px">
+            <span style="width:10px;height:10px;border-radius:50%;background:${catColors[i]};display:inline-block"></span>${cat}
+        </span>`).join('')}
     </div>`;
 }
 
@@ -710,7 +810,7 @@ function renderAttendance() {
         </div>
         <div class="form-group" id="att-group-wrap" style="display:none">
           <label>Lab Group</label>
-          <select id="att-group" onchange="renderAttTable()">
+          <select id="att-group" onchange="onAttFilterChange()">
             <option value="1">Group 1 </option>
             <option value="2">Group 2 </option>
           </select>
@@ -719,13 +819,13 @@ function renderAttendance() {
       <div class="form-row">
         <div class="form-group">
           <label>Subject</label>
-          <select id="att-subject" onchange="renderAttTable()">
+          <select id="att-subject" onchange="onAttFilterChange()">
             ${SUBJECTS.map(s => `<option>${s}</option>`).join('')}
           </select>
         </div>
         <div class="form-group">
           <label>Date</label>
-          <input type="date" id="att-date" value="${todayStr}" onchange="renderAttTable()" />
+          <input type="date" id="att-date" value="${todayStr}" onchange="onAttFilterChange()" />
         </div>
       </div>
     </div>
@@ -773,6 +873,29 @@ function buildAttRows() {
     return `<div class="empty-state"><div class="icon">👥</div><p>No students found for this selection</p></div>`;
   }
 
+  const recordsExist = window.ATTENDANCE.some(a => a.subject === subj && a.date === date);
+
+  if (recordsExist && !attEditMode) {
+    const presentCount = filteredStudents.filter(s => todayAttendanceDraft[s.roll] === 'p').length;
+    const absentCount = filteredStudents.length - presentCount;
+    return `
+    <div style="margin-bottom:12px;font-size:13px;color:var(--text3)">
+      ✅ Attendance already marked for this date — 
+      <strong style="color:var(--green)">${presentCount} Present</strong>, 
+      <strong style="color:var(--red)">${absentCount} Absent</strong>
+      &nbsp;·&nbsp;<button class="btn btn-outline btn-sm" onclick="attEditMode=true; renderAttTable();">Edit</button>
+    </div>
+    ${[...filteredStudents].sort((a, b) => Number(a.roll) - Number(b.roll)).map(s => `
+      <div class="att-mark-row">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div class="avatar" style="width:32px;height:32px;font-size:12px;background:${s.color}">${s.avatar}</div>
+          <div><div style="font-size:14px;font-weight:600">${s.name}</div><div style="font-size:12px;color:var(--text3)">${s.roll}</div></div>
+        </div>
+        <span class="badge ${todayAttendanceDraft[s.roll] === 'p' ? 'present' : 'cancelled'}">${todayAttendanceDraft[s.roll] === 'p' ? 'Present' : 'Absent'}</span>
+      </div>`).join('')}
+  `;
+  }
+
   return [...filteredStudents].sort((a, b) => Number(a.roll) - Number(b.roll)).map(s => `
         <div class="att-mark-row">
           <div style="display:flex;align-items:center;gap:10px">
@@ -787,9 +910,13 @@ function buildAttRows() {
 }
 
 function renderAttTable() {
-    const subj = document.getElementById('att-subject').value;
-    document.getElementById('att-subject-label').textContent = subj;
-    document.getElementById('att-rows').innerHTML = buildAttRows();
+  const subj = document.getElementById('att-subject').value;
+  document.getElementById('att-subject-label').textContent = subj;
+  document.getElementById('att-rows').innerHTML = buildAttRows();
+}
+function onAttFilterChange() {
+  attEditMode = false;
+  renderAttTable();
 }
 
 function onSectionOrTypeChange() {
@@ -810,7 +937,7 @@ function onSectionOrTypeChange() {
     subjSelect.innerHTML = classSubjects.map(s => `<option>${s}</option>`).join('');
   }
 
-  renderAttTable();
+  onAttFilterChange();
 }
 
 function markAtt(rollNo, status, btn) {
@@ -1032,12 +1159,13 @@ async function restoreClass(key) {
 // ── PAGE: COMPLAINTS ──────────────────────────────────────────────────────────
 
 function renderComplaints() {
-    const isStudent = currentUser.role === 'student';
-    const myComplaints = isStudent ? COMPLAINTS.filter(c => c.by === currentUser.name) : COMPLAINTS;
+  const isStudent = currentUser.role === 'student';
+  const myComplaints = isStudent ? COMPLAINTS.filter(c => c.by === currentUser.name) : COMPLAINTS;
+  const sortedComplaints = isStudent ? myComplaints : [...myComplaints].sort((a, b) => (b.upvotes || 0) - (a.upvotes || 0));
 
-    return `<div class="page active">
+  return `<div class="page active">
     <div class="page-title">${isStudent ? 'My Complaints' : 'Manage Complaints'}</div>
-    <div class="page-sub">${myComplaints.length} complaint${myComplaints.length !== 1 ? 's' : ''} ${isStudent ? 'filed by you' : 'submitted by students'}</div>
+    <div class="page-sub">${myComplaints.length} complaint${myComplaints.length !== 1 ? 's' : ''} ${isStudent ? 'filed by you' : 'submitted by students — sorted by upvotes'}</div>
     ${isStudent ? `
     <div class="section-card">
       <h3>Submit a New Complaint</h3>
@@ -1061,12 +1189,22 @@ function renderComplaints() {
     </div>` : ''}
     <div class="section-card">
       <h3>${isStudent ? 'Your Complaints' : 'All Complaints'}</h3>
-      ${myComplaints.length === 0 ? '<div class="empty-state"><div class="icon">🎉</div><p>No complaints filed</p></div>' :
-        myComplaints.map(c => `
+      ${sortedComplaints.length === 0 ? '<div class="empty-state"><div class="icon">🎉</div><p>No complaints filed</p></div>' :
+      sortedComplaints.map(c => {
+        const alreadyUpvoted = (c.upvoters || []).includes(currentUser.name);
+        const upvotes = c.upvotes || 0;
+        const canUpvote = !isStudent || c.by !== currentUser.name;
+        return `
           <div class="complaint-card">
             <div class="complaint-card-header">
               <h4>${c.subject}</h4>
-              <span class="badge ${c.status}">${c.status === 'review' ? 'Under Review' : c.status.charAt(0).toUpperCase() + c.status.slice(1)}</span>
+              <div style="display:flex;align-items:center;gap:8px">
+                ${canUpvote ? `
+                <button class="upvote-btn ${alreadyUpvoted ? 'upvoted' : ''}" onclick="upvoteComplaint('${c.id}')">
+                  👍 <span class="upvote-count">${upvotes}</span>
+                </button>` : `<span style="font-size:12px;color:var(--text3)">👍 ${upvotes} upvotes</span>`}
+                <span class="badge ${c.status}">${c.status === 'review' ? 'Under Review' : c.status.charAt(0).toUpperCase() + c.status.slice(1)}</span>
+              </div>
             </div>
             <p>${c.detail}</p>
             <div class="complaint-meta">
@@ -1078,35 +1216,111 @@ function renderComplaints() {
               <button class="btn btn-sm btn-blue" onclick="updateComplaint('${c.id}','review')">Mark Under Review</button>
               <button class="btn btn-sm btn-green" onclick="updateComplaint('${c.id}','resolved')">Mark Resolved</button>
             </div>` : ''}
-          </div>`).join('')}
+          </div>`;
+      }).join('')}
     </div>
   </div>`;
 }
 
+function findSimilarComplaints(title, cat) {
+  const titleWords = title.toLowerCase().split(/\s+/).filter(w => w.length > 3);
+  return COMPLAINTS.filter(c => {
+    if (c.status === 'resolved') return false;
+    const cTitle = (c.subject || '').toLowerCase();
+    const sameCategory = c.category === cat;
+    const wordMatch = titleWords.some(w => cTitle.includes(w));
+    return sameCategory && wordMatch;
+  });
+}
+
+function showSimilarPopup(similar, onUpvote, onSubmitAnyway) {
+  const overlay = document.createElement('div');
+  overlay.className = 'similar-popup';
+  overlay.id = 'similar-popup';
+  overlay.innerHTML = `
+        <div class="similar-popup-box">
+            <h3>⚠️ Similar Complaint Already Exists!</h3>
+            <p>Yeh complaints pehle se hain. Upvote karke zyada log support dikhao — admin ko priority milegi.</p>
+            <div class="similar-list">
+                ${similar.map(c => `
+                    <div class="similar-item">
+                        <div class="similar-item-title">${c.subject}</div>
+                        <div class="similar-item-meta">📁 ${c.category} &nbsp;👍 ${c.upvotes || 0} upvotes &nbsp;📅 ${c.date}</div>
+                    </div>`).join('')}
+            </div>
+            <div class="popup-actions">
+                <button class="btn btn-outline" id="popup-anyway">Submit Anyway</button>
+                <button class="btn btn-blue" id="popup-upvote">👍 Upvote Similar</button>
+            </div>
+        </div>`;
+  document.body.appendChild(overlay);
+  document.getElementById('popup-upvote').onclick = () => { document.body.removeChild(overlay); onUpvote(); };
+  document.getElementById('popup-anyway').onclick = () => { document.body.removeChild(overlay); onSubmitAnyway(); };
+}
+
+async function upvoteComplaint(id) {
+  const c = COMPLAINTS.find(x => x.id === id);
+  if (!c) return;
+  const upvoters = c.upvoters || [];
+  if (upvoters.includes(currentUser.name)) {
+    showToast('Aap pehle se upvote kar chuke ho!', true);
+    return;
+  }
+  const newUpvotes = (c.upvotes || 0) + 1;
+  const newUpvoters = [...upvoters, currentUser.name];
+  try {
+    await window.updateDoc(window.doc(window.db, "Complaints", id), {
+      upvotes: newUpvotes,
+      upvoters: newUpvoters
+    });
+    c.upvotes = newUpvotes;
+    c.upvoters = newUpvoters;
+    showToast('Upvoted! 👍');
+    navigate('complaints');
+  } catch (err) {
+    console.error(err);
+    showToast('Upvote failed. Try again.', true);
+  }
+}
+
 async function submitComplaint() {
-    const title = document.getElementById('c-title').value.trim();
-    const cat = document.getElementById('c-cat').value;
-    const detail = document.getElementById('c-detail').value.trim();
-    if (!title || !detail) { showToast('Please fill in all fields', true); return; }
+  const title = document.getElementById('c-title').value.trim();
+  const cat = document.getElementById('c-cat').value;
+  const detail = document.getElementById('c-detail').value.trim();
+  if (!title || !detail) { showToast('Please fill in all fields', true); return; }
 
-    const newComplaint = {
-        by: currentUser.name,
-        subject: title,
-        category: cat,
-        detail,
-        status: 'pending',
-        date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
-    };
+  const similar = findSimilarComplaints(title, cat);
+  if (similar.length > 0) {
+    showSimilarPopup(
+      similar,
+      () => { upvoteComplaint(similar[0].id); },
+      () => doSubmitComplaint(title, cat, detail)
+    );
+    return;
+  }
+  await doSubmitComplaint(title, cat, detail);
+}
 
-    try {
-        const docRef = await window.addDoc(window.collection(window.db, "Complaints"), newComplaint);
-        COMPLAINTS.unshift({ id: docRef.id, ...newComplaint });
-        showToast('Complaint submitted successfully ✓');
-        navigate('complaints');
-    } catch (error) {
-        console.error("Error submitting complaint: ", error);
-        showToast('Failed to submit complaint. Try again.', true);
-    }
+async function doSubmitComplaint(title, cat, detail) {
+  const newComplaint = {
+    by: currentUser.name,
+    subject: title,
+    category: cat,
+    detail,
+    status: 'pending',
+    upvotes: 0,
+    upvoters: [],
+    date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+  };
+  try {
+    const docRef = await window.addDoc(window.collection(window.db, "Complaints"), newComplaint);
+    COMPLAINTS.unshift({ id: docRef.id, ...newComplaint });
+    showToast('Complaint submitted successfully ✓');
+    navigate('complaints');
+  } catch (error) {
+    console.error("Error submitting complaint: ", error);
+    showToast('Failed to submit complaint. Try again.', true);
+  }
 }
 
 async function updateComplaint(id, status) {
@@ -1260,6 +1474,8 @@ function buildPYQList(semFilter = '3', yearFilter = '') {
     const yearMatch = !yearFilter || String(p.year) === String(yearFilter);
     return semMatch && yearMatch;
   });
+
+  list.sort((a, b) => a.subject.localeCompare(b.subject) || (b.year - a.year));//Alphabetical sorting
 
   if (list.length === 0) {
     return `<div class="empty-state">
