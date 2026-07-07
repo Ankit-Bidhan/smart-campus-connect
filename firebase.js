@@ -6,6 +6,7 @@ import {
     getFirestore,
     collection,
     getDocs,
+    getDoc,
     addDoc,
     doc,
     updateDoc,
@@ -14,6 +15,10 @@ import {
     where,
     setDoc
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+import {
+    sendPasswordResetEmail
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 import {
     getStorage
@@ -40,20 +45,24 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+const authInstance = getAuth(app);
 const storage = getStorage(app);
 window.storage = storage;
-const authInstance = getAuth(app);
 
 window.db = db;
 window.addDoc = addDoc;
 window.collection = collection;
 window.doc = doc;
+window.getDoc = getDoc;
 window.updateDoc = updateDoc;
 window.deleteDoc = deleteDoc;
 window.query = query;
 window.where = where;
 window.setDoc = setDoc;
-
+window.sendPasswordResetEmail = sendPasswordResetEmail;
+// Cloudinary config
+window.CLOUDINARY_CLOUD_NAME = 'dhdxrb98h';
+window.CLOUDINARY_UPLOAD_PRESET = 'pyq_upload';
 
 // Auth exports for script.js to use
 window.firebaseAuth = authInstance;
@@ -85,7 +94,49 @@ async function loadStudents() {
 }
 
 window.loadStudents = loadStudents;
-loadStudents();
+// ⚠️ NOTE: loadStudents() is intentionally NOT called here anymore.
+// Previously it ran the moment this file loaded — before any login check —
+// so anyone who simply opened the site (no login needed) could see the full
+// Students collection in window.STUDENTS via the console. Now it only runs
+// after Firebase Auth confirms a signed-in user (see onAuthStateChanged below),
+// same pattern as Complaints/Notifications/Attendance already used.
+
+// load teachers from firestore (full profiles — only after login, same reasoning as above)
+async function loadTeachers() {
+    try {
+        const querySnapshot = await getDocs(collection(db, "Teachers"));
+
+        window.TEACHERS = querySnapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+        }));
+
+        console.log("👩‍🏫 Teachers loaded from Firestore:", window.TEACHERS);
+
+        if (typeof renderTeachers === "function" && document.getElementById("teachers-list")) {
+            renderTeachers();
+        }
+    } catch (error) {
+        console.error("Error loading teachers: ", error);
+    }
+}
+window.loadTeachers = loadTeachers;
+
+// ── Public login lookup (roll -> email) ──────────────────────────────────────
+// This reads ONE document from a small "RollIndex" collection (doc id = roll
+// number, only field = email). It is the ONLY thing allowed to be read before
+// login, and it only ever returns the single roll requested — never the whole
+// list — so a console-snooper can no longer dump everyone's data at once.
+async function lookupEmailByRoll(roll) {
+    try {
+        const snap = await getDoc(doc(db, "RollIndex", String(roll)));
+        return snap.exists() ? snap.data().email : null;
+    } catch (error) {
+        console.error("Error looking up roll in RollIndex: ", error);
+        return null;
+    }
+}
+window.lookupEmailByRoll = lookupEmailByRoll;
 
 async function loadComplaints() {
     try {
@@ -198,6 +249,8 @@ onAuthStateChanged(authInstance, (user) => {
         if (!dataLoadedOnce) {
             dataLoadedOnce = true;
             Promise.all([
+                loadStudents(),
+                loadTeachers(),
                 loadComplaints(),
                 loadNotifications(),
                 loadAttendance(),
