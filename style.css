@@ -130,6 +130,54 @@ body {
     border-color: var(--primary);
 }
 
+.pass-input-wrap {
+    position: relative;
+}
+
+.pass-input-wrap input {
+    padding-right: 42px !important;
+}
+
+.pass-toggle-btn {
+    position: absolute;
+    right: 6px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    padding: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text3, #94a3b8);
+    cursor: pointer;
+    border-radius: 6px;
+    transition: color .15s;
+}
+
+.pass-toggle-btn:hover {
+    color: var(--primary);
+}
+
+.forgot-pass-row {
+    text-align: right;
+    margin-top: -6px;
+    margin-bottom: 18px;
+}
+
+.forgot-pass-link {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--primary);
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.forgot-pass-link:hover {
+    text-decoration: underline;
+    color: var(--primary-dark);
+}
+
 .btn-primary {
     width: 100%;
     padding: 12px;
@@ -691,6 +739,13 @@ tr:hover td {
 .btn-outline:hover {
     border-color: var(--primary);
     color: var(--primary);
+}
+
+.btn:disabled,
+.btn[disabled] {
+    opacity: .5;
+    cursor: not-allowed;
+    pointer-events: none;
 }
 
 .form-row {
