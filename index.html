@@ -1,22 +1,34 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-81CY3X9VGQ"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag() { dataLayer.push(arguments); }
+    gtag('js', new Date());
+
+    gtag('config', 'G-81CY3X9VGQ');
+  </script>
+  
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
   <!-- SEO -->
-  <title>Campus Connect — SIET Nilokheri | Student Portal</title>
-  <meta name="description" content="Official student portal of State Institute of Engineering & Technology, Nilokheri. Access PYQ papers, attendance, timetable and more. Affiliated to Kurukshetra University." />
+  <title>Campus Connect — SIET Nilokheri — PYQ Papers, Attendance & Student Portal</title>
+  <meta name="description"
+    content="Download SIET Nilokheri PYQ (previous year question papers) free, check attendance, timetable and notices on CampusConnect — the Unofficial student portal for State Institute of Engineering & Technology, Nilokheri." />
   <meta name="keywords" content="SIET Nilokheri, State Institute of Engineering Technology Nilokheri, campus connect, student portal, PYQ papers, KUK, Kurukshetra University, Karnal, Haryana engineering college" />
   <meta name="robots" content="index, follow" />
-  <meta name="author" content="SIET Nilokheri" />
-  <link rel="canonical" href="https://campus-connect-by-aa.netlify.app/" />
+  <meta name="author" content="Campus Connect Team" />
+  <link rel="canonical" href="https://campus-connect-siet-nilokheri.netlify.app/" />
 
   <!-- Open Graph (for WhatsApp/social sharing preview) -->
   <meta property="og:title" content="Campus Connect — SIET Nilokheri" />
-  <meta property="og:description" content="Official student portal of State Institute of Engineering & Technology, Nilokheri. Download PYQ papers, check attendance, view timetable." />
+  <meta property="og:description" content="CSE student portal of State Institute of Engineering & Technology, Nilokheri. Download PYQ papers, check attendance, view timetable." />
   <meta property="og:type" content="website" />
-  <meta property="og:url" content="https://campus-connect-by-aa.netlify.app/" />
+  <meta property="og:image" content="https://campus-connect-siet-nilokheri.netlify.app/siet-logo.png" />
+  <meta property="og:url" content="https://campus-connect-siet-nilokheri.netlify.app/" />
 
   <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -280,6 +292,21 @@
       footer { padding: 24px 16px; }
     }
   </style>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "EducationalOrganization",
+    "name": "CampusConnect - SIET Nilokheri",
+    "alternateName": "SIET Nilokheri Student Portal",
+    "url": "https://campus-connect-siet-nilokheri.netlify.app/",
+    "description": "Student portal for State Institute of Engineering & Technology, Nilokheri offering PYQ papers, attendance tracking and timetable.",
+    "parentOrganization": {
+      "@type": "CollegeOrUniversity",
+      "name": "State Institute of Engineering & Technology, Nilokheri",
+      "url": "https://gecnilokheri.ac.in"
+    }
+  }
+  </script>
 </head>
 
 <body>
@@ -294,15 +321,16 @@
     </div>
   </a>
   <div class="topbar-right">
-    <a href="app.html" class="btn-login">Student Login →</a>
+    <a href="app.html" class="btn-login">Teacher/Student Login →</a>
   </div>
 </header>
 
 <!-- ── HERO ── -->
 <section class="hero">
   <div class="hero-left">
-    <div class="hero-eyebrow">🎓 Official Student Portal</div>
+    <div class="hero-eyebrow">🎓 CSE Student Portal</div>
     <h1>Smart Campus,<br><span>Smarter Students</span></h1>
+    <h2 style="font-size:15px;font-weight:500;color:rgba(255,255,255,0.75);margin-bottom:8px;">SIET Nilokheri PYQ Papers, Attendance &amp; Timetable Portal</h2>
     <p class="hero-sub">Attendance · Timetable · PYQ Papers · Notifications</p>
     <p class="hero-college">
       State Institute of Engineering &amp; Technology, Nilokheri &nbsp;·&nbsp;
@@ -343,7 +371,7 @@
 <!-- ── PYQ PAPERS ── -->
 <div class="pyq-section" id="pyq">
   <div class="pyq-inner">
-    <div class="section-title">📄 Previous Year Question Papers</div>
+    <div class="section-title">📄 SIET Nilokheri PYQ — Previous Year Question Papers</div>
     <div class="section-sub">Download PYQ papers — no login required. Filter by semester or year.</div>
 
     <div class="pyq-filters">
@@ -360,12 +388,21 @@
       </select>
       <select id="filter-year" onchange="filterPYQ()">
         <option value="">All Years</option>
+        <option value="2026">2026</option>
         <option value="2025">2025</option>
         <option value="2024">2024</option>
         <option value="2023">2023</option>
         <option value="2022">2022</option>
         <option value="2021">2021</option>
-        <option value="2020">2020</option>
+      </select>
+      <select id="filter-branch" onchange="filterPYQ()" style="display:none">
+        <option value="">Select Branch</option>
+        <option value="CSE">CSE</option>
+        <option value="CSE_AIML">CSE (AI &amp; ML)</option>
+        <option value="ECE">ECE</option>
+        <option value="CIVIL">Civil</option>
+        <option value="MECHANICAL">Mechanical</option>
+        <option value="ELECTRICAL">Electrical</option>
       </select>
     </div>
 
@@ -507,36 +544,55 @@
   function renderList() {
       const sem = document.getElementById('filter-sem').value;
       const year = document.getElementById('filter-year').value;
+      const branchSelect = document.getElementById('filter-branch');
 
       const el = document.getElementById('pyq-list');
       if (!el) return;
 
       // Semester select kiye bina kuch mat dikhao
       if (!sem) {
+        branchSelect.style.display = 'none';
+        branchSelect.value = '';
         el.innerHTML = `<div class="pyq-empty">📌 Pehle semester select karo PYQ papers dekhne ke liye.</div>`;
+        return;
+      }
+
+      // Sem 1-2 common hote hain sabhi branches ke liye — sem 3+ se branch-wise
+      const needsBranch = Number(sem) > 2;
+      branchSelect.style.display = needsBranch ? 'inline-block' : 'none';
+      if (!needsBranch) branchSelect.value = '';
+      const branch = branchSelect.value;
+
+      if (needsBranch && !branch) {
+        el.innerHTML = `<div class="pyq-empty">📌 Ab apni branch select karo — Sem 3 se aage PYQs branch-wise hain.</div>`;
         return;
       }
 
       const filtered = allPYQs.filter(p => {
         const semOk = String(p.sem) === sem;
         const yearOk = !year || String(p.year) === year;
-        return semOk && yearOk;
+        // Purane PYQs jinme branch field nahi hai unhe CSE maana jaayega (legacy uploads)
+        const pBranch = p.branch || 'CSE';
+        const branchOk = !needsBranch || pBranch === branch;
+        return semOk && yearOk && branchOk;
       });
 
       // Alphabetical sort — same subject ke saare PYQs saath mein
       filtered.sort((a, b) => (a.subject || '').localeCompare(b.subject || '') || (b.year - a.year));
 
       if (filtered.length === 0) {
-        el.innerHTML = `<div class="pyq-empty">📂 No PYQ papers found for selected filters.<br><small>Try selecting a different semester or year.</small></div>`;
+        el.innerHTML = `<div class="pyq-empty">📂 No PYQ papers found for selected filters.<br><small>Try selecting a different semester, branch or year.</small></div>`;
         return;
       }
+
+      const branchLabels = { CSE: 'CSE', CSE_AIML: 'CSE (AI & ML)', ECE: 'ECE', CIVIL: 'Civil', MECHANICAL: 'Mechanical', ELECTRICAL: 'Electrical' };
 
       el.innerHTML = `<div class="pyq-list">` + filtered.map(p => `
       <div class="pyq-item">
         <div class="pyq-icon">📄</div>
         <div class="pyq-info">
           <div class="pyq-name">${p.subject || 'Unknown Subject'}</div>
-          <div class="pyq-meta">Sem ${p.sem || '—'} &nbsp;·&nbsp; Year ${p.year || '—'} &nbsp;·&nbsp; Uploaded by ${p.uploadedBy || 'Faculty'}</div>
+          <div class="pyq-meta">Sem ${p.sem || '—'}${needsBranch ? ` &nbsp;·&nbsp; ${branchLabels[p.branch || 'CSE'] || p.branch}` : ''} &nbsp;·&nbsp; Year ${p.year || '—'} &nbsp;·&nbsp; Uploaded by ${p.uploadedBy || 'Faculty'}</div>
         </div>
         <a href="${p.url}" target="_blank" rel="noopener" class="btn-download">⬇️ Download</a>
       </div>`).join('') + `</div>`;
