@@ -28,14 +28,14 @@ window.COMPLAINTS = [];
 window.NOTIFICATIONS = [];
 
 const TIMETABLE = {
-  '9:00': ['Computer Organization and Architecture', 'Computer Organization and Architecture', 'Object Oriented Programming', 'IT (GF-2)', 'Data Structures and Algorithms'],
-  '10:00': ['Essence of Indian Traditional Knowledge (GF-1)', 'Object Oriented Programming', 'IT (GF-2)', 'Data Structures and Algorithms', 'Computer Organization and Architecture'],
-  '11:00': ['Data Structures and Algorithms', 'Probability and Statistics', 'Probability and Statistics', 'Object Oriented Programming', 'Object Oriented Programming'],
-  '12:00': ['Probability and Statistics', 'Data Structures and Algorithms', 'Object Oriented Programming', 'Organizational Behaviour', 'Organizational Behaviour'],
+  '9:00': ['Object Oriented Programming', 'Data Structures and Algorithms', 'Data Structures and Algorithms', 'Object Oriented Programming', 'Essence of Indian Traditional Knowledge (VF-5)'],
+  '10:00': ['Data Structures and Algorithms', 'Computer Organization and Architecture', 'IT (Rama)', 'Data Structures and Algorithms', 'Object Oriented Programming'],
+  '11:00': ['Probability and Statistics', 'IT (Rama)', 'Computer Organization and Architecture', 'Probability and Statistics', 'IT (Rama)'],
+  '12:00': ['Computer Organization and Architecture', 'Organizational Behaviour', 'Organizational Behaviour', 'Essence of Indian Traditional Knowledge (VF-5)', 'Probability and Statistics'],
   '1:00': ['LUNCH', 'LUNCH', 'LUNCH', 'LUNCH', 'LUNCH'],
-  '2:00': ['IT (GF-2)', 'Essence of Indian Traditional Knowledge (GF-1)', 'Data Structures and Algorithms Lab', 'IT Workshop Lab', 'Object Oriented Programming Lab'],
-  '3:00': ['', '', 'Data Structures and Algorithms Lab', 'IT Workshop Lab', 'Object Oriented Programming Lab'],
-  '4:00': ['', '', 'Data Structures and Algorithms Lab', '', 'Object Oriented Programming Lab'],
+  '2:00': ['DSA Lab, OOP Lab, IT Lab', 'DSA Lab, OOP Lab, IT Lab', 'DSA Lab, OOP Lab, IT Lab', 'Organizational Behaviour', 'Object Oriented Programming'],
+  '3:00': ['DSA Lab, OOP Lab, IT Lab', 'DSA Lab, OOP Lab, IT Lab', 'DSA Lab, OOP Lab, IT Lab', '', ''],
+  '4:00': ['DSA Lab, OOP Lab', 'DSA Lab, OOP Lab', 'DSA Lab, OOP Lab', '', ''],
 };
 const TIMETABLE_B = {
   '9:00': ['', '', 'IT (GF-2)', '', ''],
@@ -109,6 +109,7 @@ const NAV = {
     { section: 'Overview' },
     { id: 'dashboard', label: 'Dashboard', icon: 'home' },
     { id: 'notifications', label: 'Notifications', icon: 'bell' },
+    { id: 'analytics', label: 'Analytics', icon: 'bar-chart' },
     { section: 'Manage' },
     { id: 'students', label: 'Students', icon: 'users' },
     { id: 'teachers', label: 'Teachers', icon: 'user' },
@@ -161,6 +162,7 @@ function icon(name) {
     megaphone: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l19-9-9 19-2-8-8-2z"/></svg>',
     user: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>',
     book: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>',
+    'bar-chart': '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>'
   };
   return icons[name] || '';
 }
@@ -203,6 +205,7 @@ async function login() {
   }
 
   errorDiv.style.display = 'none';
+  setLoginLoading(true);
 
   // 1. Resolve roll number -> email.
   // IMPORTANT: this no longer reads the full Students collection before login.
@@ -220,6 +223,7 @@ async function login() {
   if (!emailToUse) {
     errorDiv.textContent = "Invalid roll number or password. Try again.";
     errorDiv.style.display = 'block';
+    setLoginLoading(false);
     return;
   }
 
@@ -281,12 +285,24 @@ async function login() {
       window.signOut(window.firebaseAuth);
       errorDiv.textContent = "Account found but no profile record exists. Contact admin.";
       errorDiv.style.display = 'block';
+      setLoginLoading(false);
     })
     .catch((error) => {
       console.error('Login error:', error.code, error.message);
       errorDiv.textContent = "Invalid roll number or password. Try again.";
       errorDiv.style.display = 'block';
+      setLoginLoading(false);
     });
+}
+// ── Login button loading state helper ───────────────────────────────────────
+function setLoginLoading(isLoading) {
+  const btn = document.getElementById('login-btn');
+  const text = document.getElementById('login-btn-text');
+  const spinner = document.getElementById('login-btn-spinner');
+  if (!btn) return;
+  btn.disabled = isLoading;
+  spinner.style.display = isLoading ? 'inline-block' : 'none';
+  text.textContent = isLoading ? 'Signing in...' : 'Sign In';
 }
 
 // ── FORGOT PASSWORD ─────────────────────────────────────────────────────────
@@ -359,6 +375,7 @@ function doLogout() {
   document.getElementById('auth-screen').style.display = 'flex';
   document.getElementById('app').style.display = 'none';
   document.getElementById('login-error').style.display = 'none';
+  setLoginLoading(false);
 }
 
 // ── SIDEBAR ───────────────────────────────────────────────────────────────────
@@ -396,7 +413,7 @@ function navigate(page) {
     'att-register': 'Attendance Register',
     timetable: 'Timetable', cancel: 'Cancel Classes', complaints: 'Complaints',
     announce: 'Announcements', profile: 'My Profile',
-    pyq: 'PYQ Papers',
+    pyq: 'PYQ Papers', analytics: 'Analytics',
   };
   document.getElementById('topbar-page').textContent = titles[page] || '';
   const content = document.getElementById('main-content');
@@ -413,12 +430,23 @@ function navigate(page) {
     profile: renderProfile,
     addstudent: renderAddStudent,
     pyq: renderPYQ,
+    analytics: renderAnalytics,
   };
   content.innerHTML = (renders[page] || (() => '<div class="page active"><p>Coming soon</p></div>'))();
 
   // Attendance page ke baad rows populate karo — DOM ready hone ke baad
   if (page === 'attendance' && currentUser.role !== 'student') {
     setTimeout(() => renderAttTable(), 0);
+  }
+
+  // Analytics charts sirf canvas DOM me aane ke baad hi ban sakte hain
+  if (page === 'analytics') {
+    setTimeout(() => initAnalyticsCharts(), 0);
+  }
+
+  // PYQ page ke branch field visibility DOM ready hone ke baad sync karo
+  if (page === 'pyq') {
+    setTimeout(() => initPyqPageUI(), 0);
   }
 }
 
@@ -568,11 +596,8 @@ function renderDashboard() {
       </div>
       <div class="section-card">
         <h3>Analytics 📊</h3>
-        <div class="chart-tabs">
-          <button class="chart-tab active" onclick="switchChart('attendance',this)">Attendance</button>
-          <button class="chart-tab" onclick="switchChart('complaints',this)">Complaints</button>
-        </div>
-        <div class="chart-wrap" id="analytics-chart">${buildAttendanceChart()}</div>
+        <p style="font-size:13px;color:var(--text2);margin-bottom:12px">Attendance, complaints aur cancellations ka poora breakdown ab ek dedicated page pe hai.</p>
+        <button class="btn btn-outline btn-sm" onclick="navigate('analytics')">View full analytics →</button>
       </div>
       <div class="section-card">
         <h3>All Complaints</h3>
@@ -594,85 +619,145 @@ function renderDashboard() {
     </div>`;
 }
 
-// ── ANALYTICS HELPERS ────────────────────────────────────────────────────────
+// ── PAGE: ANALYTICS (admin combined dashboard, Chart.js powered) ───────────────
+function renderAnalytics() {
+  const totalStudents = STUDENTS.length;
+  const overallAtt = totalStudents ? Math.round(STUDENTS.reduce((sum, s) => sum + getOverallAttendance(s.roll), 0) / totalStudents) : 0;
+  const resolvedCount = COMPLAINTS.filter(c => c.status === 'resolved').length;
+  const resolutionRate = COMPLAINTS.length ? Math.round((resolvedCount / COMPLAINTS.length) * 100) : 0;
+  const totalCancelled = Object.keys(cancelledClasses).length;
 
-function switchChart(type, btn) {
-  document.querySelectorAll('.chart-tab').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  const wrap = document.getElementById('analytics-chart');
-  if (!wrap) return;
-  wrap.innerHTML = type === 'attendance' ? buildAttendanceChart() : buildComplaintsChart();
+  return `
+    <div class="page active">
+      <div class="page-title">Analytics 📊</div>
+      <div class="page-sub">${getTodayLabel()} — Full system insights</div>
+
+      <div class="cards-grid">
+        <div class="stat-card blue"><div class="label">Total Students</div><div class="value">${totalStudents}</div><div class="sub">B.Tech CS Sem 3</div></div>
+        <div class="stat-card ${overallAtt >= 75 ? 'green' : 'red'}"><div class="label">Overall Attendance</div><div class="value">${overallAtt}%</div><div class="sub">Across all subjects</div></div>
+        <div class="stat-card amber"><div class="label">Complaint Resolution</div><div class="value">${resolutionRate}%</div><div class="sub">${resolvedCount} of ${COMPLAINTS.length} resolved</div></div>
+        <div class="stat-card red"><div class="label">Cancelled Slots</div><div class="value">${totalCancelled}</div><div class="sub">Recurring, weekly</div></div>
+      </div>
+
+      <div class="charts-grid">
+        <div class="chart-card">
+          <h3>Attendance by Subject</h3>
+          <div class="chart-wrap"><canvas id="chart-subject-attendance"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <h3>Section A vs Section B</h3>
+          <div class="chart-wrap"><canvas id="chart-section-comparison"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <h3>Students by Attendance Range</h3>
+          <div class="chart-wrap"><canvas id="chart-attendance-range"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <h3>Complaints by Category</h3>
+          <div class="chart-wrap"><canvas id="chart-complaints-category"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <h3>Complaints by Status</h3>
+          <div class="chart-wrap"><canvas id="chart-complaints-status"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <h3>Cancellations by Day</h3>
+          <div class="chart-wrap"><canvas id="chart-cancellations-day"></canvas></div>
+        </div>
+      </div>
+    </div>`;
 }
 
-function buildAttendanceChart() {
+let analyticsChartInstances = {};
+
+function initAnalyticsCharts() {
+  // Purane chart instances destroy karo taaki canvas re-navigation par crash na ho
+  Object.values(analyticsChartInstances).forEach(c => c && c.destroy());
+  analyticsChartInstances = {};
+
+  // 1. Attendance by Subject
+  const subjectLabels = SUBJECTS.map(s => s.length > 22 ? s.slice(0, 20) + '…' : s);
+  const subjectData = SUBJECTS.map(s => {
+    const pcts = STUDENTS.map(stu => getAttendanceStats(stu.roll, s).pct);
+    return pcts.length ? Math.round(pcts.reduce((a, b) => a + b, 0) / pcts.length) : 0;
+  });
+  const subjectColors = subjectData.map(v => v >= 75 ? '#2f9e44' : v >= 60 ? '#f59f00' : '#e03131');
+
+  analyticsChartInstances.subject = new Chart(document.getElementById('chart-subject-attendance'), {
+    type: 'bar',
+    data: { labels: subjectLabels, datasets: [{ label: 'Avg Attendance', data: subjectData, backgroundColor: subjectColors, borderRadius: 6, maxBarThickness: 46 }] },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ctx.parsed.y + '%' } } },
+      scales: { y: { beginAtZero: true, max: 100, ticks: { callback: v => v + '%' } }, x: { ticks: { font: { size: 10 } } } }
+    }
+  });
+
+  // 2. Section A vs Section B
+  const avgSec = arr => arr.length ? Math.round(arr.reduce((sum, s) => sum + getOverallAttendance(s.roll), 0) / arr.length) : 0;
+  const secA = avgSec(STUDENTS.filter(s => getStudentSection(s.roll) === 'A'));
+  const secB = avgSec(STUDENTS.filter(s => getStudentSection(s.roll) === 'B'));
+
+  analyticsChartInstances.section = new Chart(document.getElementById('chart-section-comparison'), {
+    type: 'bar',
+    data: { labels: ['Section A', 'Section B'], datasets: [{ label: 'Avg Attendance', data: [secA, secB], backgroundColor: ['#3b5bdb', '#1c7ed6'], borderRadius: 8, maxBarThickness: 80 }] },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ctx.parsed.y + '%' } } },
+      scales: { y: { beginAtZero: true, max: 100, ticks: { callback: v => v + '%' } } }
+    }
+  });
+
+  // 3. Students by Attendance Range
   const ranges = [
-    { label: '<60%', min: 0, max: 60, color: 'var(--red)' },
-    { label: '60-75%', min: 60, max: 75, color: 'var(--amber)' },
-    { label: '75-85%', min: 75, max: 85, color: 'var(--blue)' },
-    { label: '85%+', min: 85, max: 101, color: 'var(--green)' },
+    { label: '<60%', min: 0, max: 60, color: '#e03131' },
+    { label: '60-75%', min: 60, max: 75, color: '#f59f00' },
+    { label: '75-85%', min: 75, max: 85, color: '#1c7ed6' },
+    { label: '85%+', min: 85, max: 101, color: '#2f9e44' },
   ];
-  const counts = ranges.map(r =>
-    STUDENTS.filter(s => {
-      const a = getOverallAttendance(s.roll);
-      return a >= r.min && a < r.max;
-    }).length
-  );
-  const maxVal = Math.max(...counts, 1);
-  const CHART_H = 180;
-  const MIN_H = 8; // zero bhi ho toh ek thin bar dikhega
-  return `
-    <div style="margin-bottom:10px;font-size:12px;color:var(--text3);font-weight:600">Students by Attendance Range</div>
-    <div style="display:flex;align-items:flex-end;gap:16px;height:${CHART_H + 30}px;padding-bottom:28px;border-bottom:2px solid var(--border);position:relative">
-        ${ranges.map((r, i) => {
-    const logVal = counts[i] === 0 ? 0 : Math.log(counts[i] + 1);
-    const logMax = Math.log(maxVal + 1);
-    const h = counts[i] === 0 ? MIN_H : Math.max(MIN_H, Math.round((logVal / logMax) * CHART_H));
-    return `<div style="display:flex;flex-direction:column;align-items:center;flex:1;gap:0">
-                <div style="width:100%;height:${h}px;background:${r.color};border-radius:6px 6px 0 0;display:flex;align-items:flex-start;justify-content:center;padding-top:6px;position:relative" title="${counts[i]} students">
-               <span style="font-size:13px;font-weight:700;color:white;text-shadow:0 1px 3px rgba(0,0,0,0.4)">${counts[i]}</span>
-             </div>
-                <span style="font-size:12px;color:var(--text3);margin-top:8px;font-weight:500">${r.label}</span>
-            </div>`;
-  }).join('')}
-    </div>
-    <div style="display:flex;gap:16px;margin-top:12px;flex-wrap:wrap">
-        ${ranges.map(r => `<span style="font-size:12px;color:var(--text2);display:flex;align-items:center;gap:5px">
-            <span style="width:10px;height:10px;border-radius:50%;background:${r.color};display:inline-block"></span>${r.label}
-        </span>`).join('')}
-    </div>`;
-}
+  const rangeCounts = ranges.map(r => STUDENTS.filter(s => { const a = getOverallAttendance(s.roll); return a >= r.min && a < r.max; }).length);
 
-function buildComplaintsChart() {
+  analyticsChartInstances.range = new Chart(document.getElementById('chart-attendance-range'), {
+    type: 'bar',
+    data: { labels: ranges.map(r => r.label), datasets: [{ label: 'Students', data: rangeCounts, backgroundColor: ranges.map(r => r.color), borderRadius: 8, maxBarThickness: 70 }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
+  });
+
+  // 4. Complaints by Category
   const cats = ['Academic', 'Infrastructure', 'Behavioural', 'Other'];
-  const catColors = ['var(--primary)', 'var(--amber)', 'var(--red)', 'var(--blue)'];
-  const counts = cats.map(cat => ({
-    cat,
-    total: COMPLAINTS.filter(c => c.category === cat).length,
-  }));
-  const maxVal = Math.max(...counts.map(c => c.total), 1);
-  const CHART_H = 180;
-  const MIN_H = 8;
-  return `
-    <div style="margin-bottom:10px;font-size:12px;color:var(--text3);font-weight:600">Complaints by Category</div>
-    <div style="display:flex;align-items:flex-end;gap:16px;height:${CHART_H + 40}px;padding-bottom:28px;border-bottom:2px solid var(--border)">
-        ${counts.map((c, i) => {
-    const logVal = c.total === 0 ? 0 : Math.log(c.total + 1);
-    const logMax = Math.log(maxVal + 1);
-    const h = c.total === 0 ? MIN_H : Math.max(MIN_H, Math.round((logVal / logMax) * CHART_H));
-    return `<div style="display:flex;flex-direction:column;align-items:center;flex:1;position:relative">
-                <div style="width:100%;height:${h}px;background:${catColors[i]};border-radius:6px 6px 0 0;position:relative">
-                    <span style="position:absolute;top:-22px;left:50%;transform:translateX(-50%);font-size:13px;font-weight:700;color:#111;white-space:nowrap">${c.total}</span>
-                </div>
-                <span style="font-size:12px;color:var(--text3);margin-top:8px;font-weight:500;text-align:center">${c.cat}</span>
-            </div>`;
-  }).join('')}
-    </div>
-    <div style="display:flex;gap:16px;margin-top:12px;flex-wrap:wrap">
-        ${cats.map((cat, i) => `<span style="font-size:12px;color:var(--text2);display:flex;align-items:center;gap:5px">
-            <span style="width:10px;height:10px;border-radius:50%;background:${catColors[i]};display:inline-block"></span>${cat}
-        </span>`).join('')}
-    </div>`;
+  const catCounts = cats.map(cat => COMPLAINTS.filter(c => c.category === cat).length);
+
+  analyticsChartInstances.category = new Chart(document.getElementById('chart-complaints-category'), {
+    type: 'doughnut',
+    data: { labels: cats, datasets: [{ data: catCounts, backgroundColor: ['#3b5bdb', '#f59f00', '#e03131', '#1c7ed6'], borderWidth: 2, borderColor: '#fff' }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } } } }
+  });
+
+  // 5. Complaints by Status
+  const statusMeta = [
+    { key: 'pending', label: 'Pending', color: '#f59f00' },
+    { key: 'review', label: 'Under Review', color: '#1c7ed6' },
+    { key: 'resolved', label: 'Resolved', color: '#2f9e44' },
+  ];
+  const statusCounts = statusMeta.map(st => COMPLAINTS.filter(c => c.status === st.key).length);
+
+  analyticsChartInstances.status = new Chart(document.getElementById('chart-complaints-status'), {
+    type: 'doughnut',
+    data: { labels: statusMeta.map(s => s.label), datasets: [{ data: statusCounts, backgroundColor: statusMeta.map(s => s.color), borderWidth: 2, borderColor: '#fff' }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } } } }
+  });
+
+  // 6. Cancellations by Day
+  const dayCounts = DAYS.map(d => Object.keys(cancelledClasses).filter(key => key.split('_').pop() === d).length);
+
+  analyticsChartInstances.cancel = new Chart(document.getElementById('chart-cancellations-day'), {
+    type: 'bar',
+    data: { labels: DAYS, datasets: [{ label: 'Cancelled Slots', data: dayCounts, backgroundColor: '#e03131', borderRadius: 6, maxBarThickness: 46 }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
+  });
 }
+window.initAnalyticsCharts = initAnalyticsCharts;
+
 
 // ── PAGE: NOTIFICATIONS ───────────────────────────────────────────────────────
 
@@ -706,7 +791,14 @@ function renderNotifications() {
           <textarea id="notif-body" placeholder="Write your notification..."></textarea>
         </div>
       </div>
-      <button class="btn btn-blue" onclick="postNotification()">🔔 Send Notification</button>
+      <div class="form-row single">
+        <div class="form-group">
+          <label>Attach PDF (optional)</label>
+          <input type="file" id="notif-file" accept=".pdf" />
+        </div>
+      </div>
+      <div id="notif-upload-progress" style="display:none;margin-top:6px;font-size:13px;color:var(--text3)">Uploading PDF...</div>
+      <button class="btn btn-blue" id="notif-send-btn" onclick="postNotification()">🔔 Send Notification</button>
     </div>` : ''}
     <div class="section-card">
       ${NOTIFICATIONS.length === 0 ? '<div class="empty-state"><div class="icon">🔔</div><p>No notifications yet</p></div>' :
@@ -716,6 +808,7 @@ function renderNotifications() {
           <div>
             <div class="notif-title">${n.type === 'cancel' ? '🚫 ' : n.type === 'success' ? '✅ ' : '📢 '}${n.title}</div>
             <div class="notif-body">${n.body}</div>
+            ${n.pdfUrl ? `<a href="${n.pdfUrl}" target="_blank" class="btn btn-sm btn-outline" style="margin-top:6px;display:inline-block">📎 View PDF</a>` : ''}
             <div class="notif-time">${n.time}</div>
           </div>
         </div>`).join('')}
@@ -727,11 +820,45 @@ async function postNotification() {
   const title = document.getElementById('notif-title').value.trim();
   const type = document.getElementById('notif-type').value;
   const body = document.getElementById('notif-body').value.trim();
+  const fileInput = document.getElementById('notif-file');
+  const file = fileInput && fileInput.files[0];
   if (!title || !body) { showToast('Fill in title and message', true); return; }
+
+  if (file) {
+    if (file.type !== 'application/pdf') { showToast('Sirf PDF allowed hai', true); return; }
+    if (file.size > 10 * 1024 * 1024) { showToast('File 10MB se chhoti honi chahiye', true); return; }
+  }
+
+  const sendBtn = document.getElementById('notif-send-btn');
+  const progressDiv = document.getElementById('notif-upload-progress');
+  if (sendBtn) sendBtn.disabled = true;
 
   const newNotif = { title, body, time: new Date().toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }), type, read: false };
 
   try {
+    // Optional PDF attach — same Cloudinary raw-upload pattern used for PYQs
+    if (file) {
+      if (progressDiv) progressDiv.style.display = 'block';
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('upload_preset', window.CLOUDINARY_UPLOAD_PRESET);
+      formData.append('resource_type', 'raw');
+
+      const res = await fetch(`https://api.cloudinary.com/v1_1/${window.CLOUDINARY_CLOUD_NAME}/raw/upload`, { method: 'POST', body: formData });
+      const data = await res.json();
+
+      if (data.error) {
+        showToast('PDF upload failed: ' + data.error.message, true);
+        if (progressDiv) progressDiv.style.display = 'none';
+        if (sendBtn) sendBtn.disabled = false;
+        return;
+      }
+
+      newNotif.pdfUrl = data.secure_url;
+      newNotif.pdfPublicId = data.public_id;
+      if (progressDiv) progressDiv.style.display = 'none';
+    }
+
     const docRef = await window.addDoc(window.collection(window.db, "Notifications"), newNotif);
     NOTIFICATIONS.unshift({ id: docRef.id, ...newNotif });
     showToast('Notification sent ✓');
@@ -739,6 +866,8 @@ async function postNotification() {
   } catch (error) {
     console.error("Error sending notification: ", error);
     showToast('Failed to send notification. Try again.', true);
+  } finally {
+    if (sendBtn) sendBtn.disabled = false;
   }
 }
 
@@ -823,31 +952,37 @@ async function deleteStudent(docId, name) {
     showToast('Delete failed. Try again.', true);
   }
 }
-async function showAddStudentForm() {
+function showAddStudentForm() {
+  document.getElementById('modal-card').innerHTML = `
+    <h3>Add Student</h3>
+    <div class="modal-sub">Fills a new record in the Students collection.</div>
+    <div class="field"><label>Full Name</label><input id="m-name" placeholder="e.g. Ankit Kumar" /></div>
+    <div class="field"><label>Roll Number</label><input id="m-roll" type="number" placeholder="e.g. 23" /></div>
+    <div class="field"><label>Class</label><input id="m-class" placeholder="e.g. B.Tech CS Sem 3" /></div>
+    <div class="field"><label>Email (for login)</label><input id="m-email" type="email" placeholder="student@campusconnect.local" /></div>
+    <div class="modal-error" id="modal-error">All fields are required.</div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+      <button class="btn-primary" style="width:auto;padding:10px 20px" onclick="submitAddStudent()">Add Student</button>
+    </div>
+  `;
+  document.getElementById('modal-overlay').classList.add('active');
+}
 
-  const name = prompt("Student Name");
+async function submitAddStudent() {
+  const name = document.getElementById('m-name').value.trim();
+  const roll = document.getElementById('m-roll').value.trim();
+  const studentClass = document.getElementById('m-class').value.trim();
+  const email = document.getElementById('m-email').value.trim();
 
-  if (!name) return;
+  if (!name || !roll || !studentClass || !email) {
+    document.getElementById('modal-error').style.display = 'block';
+    return;
+  }
 
-  const roll = prompt("Roll Number");
+  const initials = name.split(" ").map(x => x[0]).join("").toUpperCase();
 
-  if (!roll) return;
-
-  const studentClass = prompt("Class");
-
-  if (!studentClass) return;
-
-  const email = prompt("Student Email (needed for login)");
-
-  if (!email) return;
-
-  const initials =
-    name.split(" ")
-      .map(x => x[0])
-      .join("")
-      .toUpperCase();
-
-  await window.addDoc(window.collection(window.db, "Students"), {  //Create new document in firestore
+  await window.addDoc(window.collection(window.db, "Students"), {
     name: name,
     roll: Number(roll),
     class: studentClass,
@@ -856,16 +991,17 @@ async function showAddStudentForm() {
     color: "#3b5bdb"
   });
 
-  // Also write the roll->email pair to RollIndex — this is the ONLY thing
-  // that stays publicly readable, so login still works before auth, without
-  // exposing the student's full profile.
   await window.setDoc(window.doc(window.db, "RollIndex", String(roll)), { email });
 
-  await window.loadStudents(); //list ko firestore se dobara frtch krne ke liye
-
+  await window.loadStudents();
+  closeModal();
   showToast("Student added to records. Ask admin to create their login (Auth account) separately.");
-
   navigate("students");
+}
+
+function closeModal() {
+  document.getElementById('modal-overlay').classList.remove('active');
+  document.getElementById('modal-card').innerHTML = '';
 }
 function renderAddStudent() {
   return
@@ -900,43 +1036,49 @@ function renderTeachers() {
   </div>`;
 }
 
-async function showAddTeacherForm() {
-  const name = prompt("Teacher Name");
-  if (!name) return;
+function showAddTeacherForm() {
+  document.getElementById('modal-card').innerHTML = `
+    <h3>Add Teacher</h3>
+    <div class="modal-sub">Create this same email as a Firebase Auth user in the console too.</div>
+    <div class="field"><label>Full Name</label><input id="m-t-name" placeholder="e.g. Divya Sharma" /></div>
+    <div class="field"><label>Roll / ID Number</label><input id="m-t-roll" placeholder="unique login ID" /></div>
+    <div class="field"><label>Subject</label><input id="m-t-subject" placeholder="e.g. Data Structures" /></div>
+    <div class="field"><label>Section</label><input id="m-t-section" placeholder="e.g. A, B, or 'A & B'" /></div>
+    <div class="field"><label>Login Email</label><input id="m-t-email" type="email" placeholder="teacher@campusconnect.local" /></div>
+    <div class="modal-error" id="modal-error">All fields are required.</div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+      <button class="btn-primary" style="width:auto;padding:10px 20px" onclick="submitAddTeacher()">Add Teacher</button>
+    </div>
+  `;
+  document.getElementById('modal-overlay').classList.add('active');
+}
 
-  const roll = prompt("Roll/ID Number (unique — used to log in)");
-  if (!roll) return;
+async function submitAddTeacher() {
+  const name = document.getElementById('m-t-name').value.trim();
+  const roll = document.getElementById('m-t-roll').value.trim();
+  const subject = document.getElementById('m-t-subject').value.trim();
+  const section = document.getElementById('m-t-section').value.trim();
+  const email = document.getElementById('m-t-email').value.trim();
 
-  const subject = prompt("Subject they teach");
-  if (!subject) return;
-
-  const section = prompt("Section (e.g. A, B, or 'A & B')");
-  if (!section) return;
-
-  const email = prompt("Login Email (create this exact email as a Firebase Auth user in the Firebase Console first)");
-  if (!email) return;
+  if (!name || !roll || !subject || !section || !email) {
+    document.getElementById('modal-error').style.display = 'block';
+    return;
+  }
 
   const initials = name.split(" ").map(x => x[0]).join("").toUpperCase();
 
   await window.addDoc(window.collection(window.db, "Teachers"), {
-    name,
-    roll: String(roll),
-    subject,
-    section,
-    email,
+    name, roll: String(roll), subject, section, email,
     avatar: initials,
     color: "#9d174d"
   });
 
-  // Public roll->email mapping so this teacher can log in.
   await window.setDoc(window.doc(window.db, "RollIndex", String(roll)), { email });
-
-  // Staff membership — required by the Firestore rules' isStaff() check
-  // so this teacher can mark attendance, upload PYQs, cancel classes, etc.
   await window.setDoc(window.doc(window.db, "StaffEmails", email), { role: "teacher", name });
 
   await window.loadTeachers();
-
+  closeModal();
   showToast("Teacher added. Don't forget to create their Firebase Auth account in the console with the same email.");
   navigate("teachers");
 }
@@ -1877,6 +2019,23 @@ function renderProfile() {
 
 window.PYQS = window.PYQS || [];
 
+const PYQ_BRANCHES = [
+  { value: 'CSE', label: 'CSE' },
+  { value: 'CSE_AIML', label: 'CSE (AI & ML)' },
+  { value: 'ECE', label: 'ECE' },
+  { value: 'CIVIL', label: 'Civil' },
+  { value: 'MECHANICAL', label: 'Mechanical' },
+  { value: 'ELECTRICAL', label: 'Electrical' }
+];
+
+// Sem 1-2 common hote hain sabhi branches ke liye — sem 3+ se branch-wise
+function togglePyqBranchField() {
+  const semEl = document.getElementById('pyq-sem');
+  const group = document.getElementById('pyq-branch-group');
+  if (!semEl || !group) return;
+  group.style.display = Number(semEl.value) > 2 ? 'block' : 'none';
+}
+
 function renderPYQ() {
   const isAdmin = currentUser.role === 'admin' || currentUser.role === 'teacher';
 
@@ -1894,14 +2053,20 @@ function renderPYQ() {
         </div>
         <div class="form-group">
           <label>Semester</label>
-          <select id="pyq-sem">
+          <select id="pyq-sem" onchange="togglePyqBranchField()">
             ${[1, 2, 3, 4, 5, 6, 7, 8].map(s => `<option value="${s}" ${s == 3 ? 'selected' : ''}>Sem ${s}</option>`).join('')}
           </select>
         </div>
         <div class="form-group">
           <label>Exam Year</label>
           <select id="pyq-year">
-            ${[2025, 2024, 2023, 2022, 2021, 2020].map(y => `<option value="${y}">${y}</option>`).join('')}
+            ${[2026, 2025, 2024, 2023, 2022, 2021].map(y => `<option value="${y}">${y}</option>`).join('')}
+          </select>
+        </div>
+        <div class="form-group" id="pyq-branch-group" style="display:none">
+          <label>Branch</label>
+          <select id="pyq-branch">
+            ${PYQ_BRANCHES.map(b => `<option value="${b.value}">${b.label}</option>`).join('')}
           </select>
         </div>
       </div>
@@ -1940,22 +2105,42 @@ function renderPYQ() {
           <label>Filter by Year</label>
           <select id="pyq-filter-year" onchange="filterPYQs()">
             <option value="">All Years</option>
-            ${[2025, 2024, 2023, 2022, 2021, 2020].map(y =>
+            ${[2026, 2025, 2024, 2023, 2022, 2021].map(y =>
     `<option value="${y}">${y}</option>`
   ).join('')}
           </select>
         </div>
+        <div class="form-group" id="pyq-filter-branch-group" style="display:none">
+          <label>Filter by Branch</label>
+          <select id="pyq-filter-branch" onchange="filterPYQs()">
+            <option value="">All Branches</option>
+            ${PYQ_BRANCHES.map(b => `<option value="${b.value}">${b.label}</option>`).join('')}
+          </select>
+        </div>
       </div>
-      <div id="pyq-list">${buildPYQList('3', '')}</div>
+      <div id="pyq-list">${buildPYQList('3', '', '')}</div>
     </div>
   </div>`;
 }
 
-function buildPYQList(semFilter = '3', yearFilter = '') {
+// Called after renderPYQ() is injected into the DOM to sync field visibility with default selections
+function initPyqPageUI() {
+  togglePyqBranchField();
+  const filterBranchGroup = document.getElementById('pyq-filter-branch-group');
+  const filterSem = document.getElementById('pyq-filter-sem');
+  if (filterBranchGroup && filterSem) {
+    filterBranchGroup.style.display = Number(filterSem.value) > 2 ? 'block' : 'none';
+  }
+}
+
+function buildPYQList(semFilter = '3', yearFilter = '', branchFilter = '') {
   const list = (window.PYQS || []).filter(p => {
     const semMatch = !semFilter || String(p.sem) === String(semFilter);
     const yearMatch = !yearFilter || String(p.year) === String(yearFilter);
-    return semMatch && yearMatch;
+    // Purane PYQs jinme branch field nahi hai unhe CSE maana jaayega (legacy uploads)
+    const pBranch = p.branch || 'CSE';
+    const branchMatch = !branchFilter || pBranch === branchFilter;
+    return semMatch && yearMatch && branchMatch;
   });
 
   list.sort((a, b) => a.subject.localeCompare(b.subject) || (b.year - a.year));//Alphabetical sorting
@@ -1976,7 +2161,7 @@ function buildPYQList(semFilter = '3', yearFilter = '') {
         <div>
           <div style="font-size:14px;font-weight:600">${p.subject}</div>
           <div style="font-size:12px;color:var(--text3);margin-top:2px">
-            Sem ${p.sem} · Year ${p.year} · By ${p.uploadedBy}
+            Sem ${p.sem}${Number(p.sem) > 2 ? ` · ${(PYQ_BRANCHES.find(b => b.value === (p.branch || 'CSE')) || {}).label || p.branch}` : ''} · Year ${p.year} · By ${p.uploadedBy}
           </div>
         </div>
       </div>
@@ -1994,17 +2179,27 @@ function buildPYQList(semFilter = '3', yearFilter = '') {
 function filterPYQs() {
   const sem = document.getElementById('pyq-filter-sem').value;
   const year = document.getElementById('pyq-filter-year').value;
-  document.getElementById('pyq-list').innerHTML = buildPYQList(sem, year);
+  const branchGroup = document.getElementById('pyq-filter-branch-group');
+  const branchSelect = document.getElementById('pyq-filter-branch');
+
+  const showBranch = Number(sem) > 2;
+  if (branchGroup) branchGroup.style.display = showBranch ? 'block' : 'none';
+  if (!showBranch && branchSelect) branchSelect.value = '';
+
+  const branch = branchSelect ? branchSelect.value : '';
+  document.getElementById('pyq-list').innerHTML = buildPYQList(sem, year, branch);
 }
 
 async function uploadPYQ() {
   const subject = document.getElementById('pyq-subject').value.trim();
   const sem = document.getElementById('pyq-sem').value;
   const year = document.getElementById('pyq-year').value;
+  const branch = Number(sem) > 2 ? document.getElementById('pyq-branch').value : null;
   const file = document.getElementById('pyq-file').files[0];
   const msgDiv = document.getElementById('pyq-msg');
 
   if (!subject) { showToast('Subject name daalo', true); return; }
+  if (Number(sem) > 2 && !branch) { showToast('Branch select karo', true); return; }
   if (!file) { showToast('PDF file select karo', true); return; }
   if (file.type !== 'application/pdf') { showToast('Sirf PDF allowed hai', true); return; }
   if (file.size > 10 * 1024 * 1024) { showToast('File 10MB se chhoti honi chahiye', true); return; }
@@ -2047,6 +2242,7 @@ async function uploadPYQ() {
     const pyqData = {
       subject,
       sem: Number(sem),
+      branch, // null for Sem 1-2 (common to all branches)
       year: Number(year),
       url: data.secure_url,
       publicId: data.public_id,
