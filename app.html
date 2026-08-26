@@ -8,6 +8,16 @@
   <link rel="stylesheet" href="style.css">
 </head>
 
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-81CY3X9VGQ"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag() { dataLayer.push(arguments); }
+  gtag('js', new Date());
+
+  gtag('config', 'G-81CY3X9VGQ');
+</script>
+
 <body>
 
   <!-- AUTH SCREEN -->
@@ -44,7 +54,10 @@
       <div class="field forgot-pass-row">
         <a href="javascript:void(0)" class="forgot-pass-link" onclick="forgotPassword()">Forgot password?</a>
       </div>
-      <button class="btn-primary" onclick="login()">Sign In</button>
+      <button class="btn-primary" id="login-btn" onclick="login()">
+        <span id="login-btn-text">Sign In</span>
+        <span id="login-btn-spinner" class="btn-spinner"></span>
+      </button>
       <div id="login-error" style="color:var(--red);font-size:13px;margin-top:10px;display:none">Invalid credentials.
         Try a demo account below.</div>
       <div id="login-info" style="color:var(--green,#2f9e44);font-size:13px;margin-top:10px;display:none"></div>
@@ -92,6 +105,7 @@
   <!-- PDF export libraries — used for "Download Attendance" (daily + full register) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 
   //javascript link
   <script src="script.js"></script>
