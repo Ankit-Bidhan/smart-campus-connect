@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://campus-connect-siet-nilokheri.netlify.app/sitemap.xml
