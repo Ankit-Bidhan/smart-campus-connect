@@ -1,41 +1,50 @@
-# Campus Connect 🏫
+# 🏫 Campus Connect
 
-A web-based platform designed to help students submit and manage college-related complaints through a centralized digital interface.
+A student-focused web platform for reporting and organizing college-related complaints in one place.
 
-## Problem Statement
+## 📌 Overview
 
-Students may face difficulties reporting campus-related issues and tracking their resolution when information is spread across different channels. Campus Connect aims to provide a more organized way to submit complaints.
+Campus Connect aims to make campus issue reporting more straightforward by giving students a centralized digital interface to submit complaints instead of relying only on scattered communication channels.
 
-## Features
+## ✨ Features
 
 - Submit college-related complaints through a web interface.
-- Provide a centralized platform for complaint-related information.
-- Make the complaint submission process easier for students.
+- Keep complaint-related information in a centralized place.
+- Provide a clearer, more organized reporting experience for students.
 
-## Tech Stack
+> Feature note: This README describes the project's stated purpose. Add details such as complaint status tracking, admin workflows, authentication, or notifications only if they are implemented in the current version.
 
-- React
-- Firebase
+## 🧰 Tech Stack
 
-## Screenshots
+- **Frontend:** React
+- **Backend / services:** Firebase
 
-_Add screenshots of the implemented application here._
+## 🚀 Getting Started
 
-## Live Demo
+The repository's setup scripts and required environment variables should be checked before publishing exact installation commands. Once confirmed, document:
 
-_Add the verified deployment URL here, if available._
+1. Required software versions
+2. Installation command
+3. Development server command
+4. Required Firebase configuration and environment variable names (never publish secret values)
 
-## Getting Started
+## 🖼️ Screenshots
 
-_Add installation instructions and environment variable setup after verifying the repository configuration._
+_Add screenshots of the current application here._
 
-## Future Improvements
+## 🌐 Live Demo
 
-_List planned improvements separately from features that are already implemented._
+_Add the verified deployment URL here, if the application is currently deployed._
 
-## Author
+## 🛣️ Possible Next Steps
 
-Ankit Bidhan
+- Document the complete complaint lifecycle and user roles.
+- Add screenshots and a short demo walkthrough.
+- Include verified local setup and deployment instructions.
+- Describe testing and contribution steps.
 
-B.Tech Computer Engineering Student
+## 👨‍💻 Author
+
+**Ankit Bidhan**  
+B.Tech Computer Engineering Student  
 State Institute of Engineering & Technology, Nilokheri
