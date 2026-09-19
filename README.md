@@ -16,7 +16,7 @@ Campus Connect aims to make campus issue reporting more straightforward by givin
 
 ## 🧰 Tech Stack
 
-- **Frontend:** React
+- **Frontend:** HTML CSS
 - **Backend / services:** Firebase
 
 ## 🚀 Getting Started
@@ -30,11 +30,15 @@ The repository's setup scripts and required environment variables should be chec
 
 ## 🖼️ Screenshots
 
-_Add screenshots of the current application here._
+<img width="1365" height="721" alt="Screenshot 2026-09-19 164247" src="https://github.com/user-attachments/assets/bf07e311-7bca-444a-807f-22a92afecf45" />
+
+<img width="1353" height="719" alt="image" src="https://github.com/user-attachments/assets/6e82ae19-ad89-4fc2-aedc-82dffcea5821" />
+
+
 
 ## 🌐 Live Demo
 
-_Add the verified deployment URL here, if the application is currently deployed._
+https://campus-connect-siet-nilokheri.netlify.app/
 
 ## 🛣️ Possible Next Steps
 
